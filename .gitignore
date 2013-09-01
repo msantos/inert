@@ -1,0 +1,7 @@
+ebin
+priv
+deps
+*.[oa]
+*.beam
+*.swp
+.eunit/

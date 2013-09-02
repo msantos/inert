@@ -40,7 +40,8 @@ typedef union {
 
 static int inert_copy(char **, ErlDrvSizeT *, char *, size_t);
 
-static ErlDrvData inert_drv_start(ErlDrvPort port, char *buf)
+    static ErlDrvData
+inert_drv_start(ErlDrvPort port, char *buf)
 {
     inert_drv_t *d = NULL;
     struct rlimit rlim = {0};
@@ -61,12 +62,14 @@ static ErlDrvData inert_drv_start(ErlDrvPort port, char *buf)
     return (ErlDrvData)d;
 }
 
-static void inert_drv_stop(ErlDrvData drv_data)
+    static void
+inert_drv_stop(ErlDrvData drv_data)
 {
     driver_free(drv_data);
 }
 
-static ErlDrvSSizeT inert_drv_control(ErlDrvData drv_data, unsigned int command,
+    static ErlDrvSSizeT
+inert_drv_control(ErlDrvData drv_data, unsigned int command,
         char *buf, ErlDrvSizeT len,
         char **rbuf, ErlDrvSizeT rlen)
 {
@@ -78,7 +81,7 @@ static ErlDrvSSizeT inert_drv_control(ErlDrvData drv_data, unsigned int command,
     event.fd = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
 
     if (event.fd < 0) {
-        if (inert_copy(rbuf, &rlen, INERT_EBADFD, strlen(INERT_EBADFD)) < 0)
+        if (inert_copy(rbuf, &rlen, INERT_EBADFD, sizeof(INERT_EBADFD)-1) < 0)
             return -1;
 
         return rlen;
@@ -92,7 +95,7 @@ static ErlDrvSSizeT inert_drv_control(ErlDrvData drv_data, unsigned int command,
             rv = driver_select(d->port, event.ev, ERL_DRV_READ|0, 0);
             break;
         default:
-            if (inert_copy(rbuf, &rlen, INERT_EINVAL, strlen(INERT_EINVAL)) < 0)
+            if (inert_copy(rbuf, &rlen, INERT_EINVAL, sizeof(INERT_EINVAL)-1) < 0)
                 return -1;
 
             return rlen;
@@ -102,7 +105,8 @@ static ErlDrvSSizeT inert_drv_control(ErlDrvData drv_data, unsigned int command,
     return rv;
 }
 
-static void inert_drv_ready_input(ErlDrvData drv_data, ErlDrvEvent event)
+    static void
+inert_drv_ready_input(ErlDrvData drv_data, ErlDrvEvent event)
 {
     inert_drv_t *d = (inert_drv_t *)drv_data;
     int32_t fd = ((inert_fd_t)event).fd;
@@ -118,7 +122,8 @@ static void inert_drv_ready_input(ErlDrvData drv_data, ErlDrvEvent event)
     (void)driver_output(d->port, res, sizeof(res));
 }
 
-static int inert_copy(char **rbuf, ErlDrvSizeT *rlen, char *buf, size_t buflen) {
+static int
+inert_copy(char **rbuf, ErlDrvSizeT *rlen, char *buf, size_t buflen) {
     if (buflen > *rlen)
         *rbuf = driver_alloc(buflen);
 

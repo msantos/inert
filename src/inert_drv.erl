@@ -29,7 +29,13 @@ start() ->
         {error, already_loaded} -> ok;
         {error, Error} -> exit({error, erl_ddll:format_error(Error)})
     end,
-    spawn(fun() -> init() end).
+
+    case whereis(inert) of
+        undefined ->
+            spawn(fun() -> init() end);
+        Pid ->
+            Pid
+    end.
 
 init() ->
     register(inert, self()),

@@ -95,7 +95,6 @@ loop_1(Port, Map) ->
             loop_1(Port, Map);
         {Port, {data, Event0}} ->
             Event = decode(Event0),
-            error_logger:info_report([{event, Event0}, {fd, Event}]),
 
             case dict:find(Event, Map) of
                 {ok, Caller} ->

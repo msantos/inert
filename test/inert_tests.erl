@@ -87,7 +87,6 @@ wait(S, 0) ->
 wait(S, N) ->
     receive
         {fd_close, FD} ->
-            ok = inert:clr(FD),
             wait(S, N-1)
     end.
 

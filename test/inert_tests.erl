@@ -62,7 +62,7 @@ inert_badfd() ->
     {error, ebadfd} = inert:poll(-1).
 
 inert_stream() ->
-    N = 200,
+    N = 100,
 
     {ok, Socket} = gen_tcp:listen(0, [binary,{active,false}]),
     {ok, Port} = inet:port(Socket),
@@ -77,6 +77,7 @@ accept(S, X, 0) ->
 accept(S, X, N) ->
     {ok, S1} = gen_tcp:accept(S),
     {ok, FD} = inet:getfd(S1),
+    ok = prim_inet:ignorefd(S1, true),
     Self = self(),
     spawn(fun() -> read(Self, FD) end),
     accept(S, X, N-1).
@@ -85,7 +86,8 @@ wait(S, 0) ->
     gen_tcp:close(S);
 wait(S, N) ->
     receive
-        {fd_close, _FD} ->
+        {fd_close, FD} ->
+            ok = inert:clr(FD),
             wait(S, N-1)
     end.
 

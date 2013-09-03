@@ -112,7 +112,7 @@ inert_drv_ready_input(ErlDrvData drv_data, ErlDrvEvent event)
     int32_t fd = ((inert_fd_t)event).fd;
     char res[4] = {0};
 
-    (void)driver_select(d->port, event, ERL_DRV_READ|0, 0);
+    (void)driver_select(d->port, event, ERL_DRV_READ, 0);
 
     res[0] = (fd >> 24) & 0xff;
     res[1] = (fd >> 16) & 0xff;

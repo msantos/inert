@@ -39,7 +39,7 @@ start() ->
 
 init() ->
     register(inert, self()),
-    Port = open_port({spawn, ?MODULE}, [stream]),
+    Port = open_port({spawn_driver, ?MODULE}, [stream]),
     loop(Port).
 
 stop() ->

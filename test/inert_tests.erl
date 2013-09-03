@@ -58,7 +58,8 @@ inert_select() ->
     end.
 
 inert_badfd() ->
-    {error, ebadfd} = inert:set(-1).
+    {error, ebadfd} = inert:set(-1),
+    {error, ebadfd} = inert:poll(-1).
 
 inert_stream() ->
     N = 200,
@@ -90,22 +91,19 @@ wait(S, N) ->
 
 read(Pid, FD) ->
     error_logger:info_report([{set, FD}]),
-    inert:set(FD),
-    receive
-        {inert, _Port, FD} ->
-            case procket:read(FD, 1024) of
-                {ok, Buf} when byte_size(Buf) =:= 0 ->
-                    procket:close(FD),
-                    Pid ! {fd_close, FD};
-                {ok, Buf} ->
-                    error_logger:info_report([{fd, FD}, {size, byte_size(Buf)}, {buf, Buf}]),
-                    read(Pid, FD);
-                {error, eagain} ->
-                    error_logger:info_report([{fd, FD}, {error, eagain}]),
-                    read(Pid, FD);
-                {error, Error} ->
-                    error_logger:error_report([{fd, FD}, {error, Error}])
-            end
+    ok = inert:poll(FD),
+    case procket:read(FD, 1024) of
+        {ok, <<>>} ->
+            procket:close(FD),
+            Pid ! {fd_close, FD};
+        {ok, Buf} ->
+            error_logger:info_report([{fd, FD}, {size, byte_size(Buf)}, {buf, Buf}]),
+            read(Pid, FD);
+        {error, eagain} ->
+            error_logger:info_report([{fd, FD}, {error, eagain}]),
+            read(Pid, FD);
+        {error, Error} ->
+            error_logger:error_report([{fd, FD}, {error, Error}])
     end.
 
 connect(Port, N) ->

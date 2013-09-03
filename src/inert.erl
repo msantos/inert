@@ -17,7 +17,9 @@
         stop/0,
 
         set/1,
-        clr/1
+        clr/1,
+
+        poll/1, poll/2
     ]).
 
 start() ->
@@ -31,3 +33,26 @@ set(FD) ->
 
 clr(FD) ->
     inert_drv:clr(FD).
+
+poll(FD) ->
+    poll(FD, []).
+
+poll(FD, Options) ->
+    Timeout = proplists:get_value(timeout, Options, infinity),
+    case set(FD) of
+        ok ->
+            poll_1(FD, Timeout);
+        Error ->
+            Error
+    end.
+
+poll_1(FD, Timeout) ->
+    receive
+        {inert, _, FD} ->
+            ok;
+        {inert_error, _, Error} ->
+            {error, Error}
+    after
+        Timeout ->
+            {error, eintr}
+    end.

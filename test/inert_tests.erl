@@ -1,9 +1,9 @@
 %%% Copyright (c) 2013, Michael Santos <michael.santos@gmail.com>
-%%% 
+%%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
 %%% copyright notice and this permission notice appear in all copies.
-%%% 
+%%%
 %%% THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
 %%% WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
 %%% MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -18,13 +18,16 @@
 -include_lib("eunit/include/eunit.hrl").
 
 inert_test_() ->
-    {setup, fun inert:start/0,
+    {setup, fun inert_setup/0,
         {timeout, 480, [
             {?LINE, fun inert_select/0},
             {?LINE, fun inert_badfd/0},
             {?LINE, fun inert_stream/0}
         ]}}.
 
+inert_setup() ->
+    {ok, Ref} = inert:start(),
+    register(inert, Ref).
 
 inert_select() ->
     {ok, Sock1} = gen_tcp:listen(0, [binary,{active,false}]),
@@ -36,8 +39,8 @@ inert_select() ->
     {ok, FD1} = inet:getfd(Sock1),
     {ok, FD2} = inet:getfd(Sock2),
 
-    ok = inert:set(FD1),
-    ok = inert:set(FD2),
+    ok = inert:fdset(inert, FD1),
+    ok = inert:fdset(inert, FD2),
 
     {ok, C1} = gen_tcp:connect("localhost", Port1, []),
     {ok, C2} = gen_tcp:connect("localhost", Port2, []),
@@ -48,21 +51,21 @@ inert_select() ->
     receive
         {inert, _, FD1} ->
             error_logger:info_report([{fd, FD1}]),
-            inert:clr(FD1),
+            inert:fdclr(inert, FD1),
             receive
                 {inert, _, FD2} ->
                     error_logger:info_report([{fd, FD2}]),
-                    inert:clr(FD2),
+                    inert:fdclr(inert, FD2),
                     ok
             end
     end.
 
 inert_badfd() ->
-    {error, ebadfd} = inert:set(-1),
-    {error, ebadfd} = inert:poll(-1).
+    {error, ebadfd} = inert:fdset(inert, -1),
+    {error, ebadfd} = inert:poll(inert, -1).
 
 inert_stream() ->
-    N = 100,
+    N = 1000,
 
     {ok, Socket} = gen_tcp:listen(0, [binary,{active,false}]),
     {ok, Port} = inet:port(Socket),
@@ -77,7 +80,7 @@ accept(S, X, 0) ->
 accept(S, X, N) ->
     {ok, S1} = gen_tcp:accept(S),
     {ok, FD} = inet:getfd(S1),
-    ok = prim_inet:ignorefd(S1, true),
+    %ok = prim_inet:ignorefd(S1, true),
     Self = self(),
     spawn(fun() -> read(Self, FD) end),
     accept(S, X, N-1).
@@ -86,13 +89,13 @@ wait(S, 0) ->
     gen_tcp:close(S);
 wait(S, N) ->
     receive
-        {fd_close, FD} ->
+        {fd_close, _FD} ->
             wait(S, N-1)
     end.
 
 read(Pid, FD) ->
-    error_logger:info_report([{set, FD}]),
-    ok = inert:poll(FD),
+    ok = inert:poll(inert, FD),
+    error_logger:info_report([{poll, FD}]),
     case procket:read(FD, 1024) of
         {ok, <<>>} ->
             procket:close(FD),

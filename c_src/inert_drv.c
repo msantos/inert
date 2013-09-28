@@ -38,6 +38,7 @@ typedef union {
     int32_t fd;
 } inert_fd_t;
 
+static void inert_drv_ready(ErlDrvData, ErlDrvEvent, int);
 static int inert_copy(char **, ErlDrvSizeT *, char *, size_t);
 
     static ErlDrvData
@@ -76,9 +77,14 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
     inert_drv_t *d = (inert_drv_t *)drv_data;
 
     inert_fd_t event = {0};
-    int rv = 0;
+    int mode = 0;
+    int on = 1;
+
+    if (len != 8)
+        return -1;
 
     event.fd = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
+    mode = (buf[4] << 24) | (buf[5] << 16) | (buf[6] << 8) | buf[7];
 
     if (event.fd < 0) {
         if (inert_copy(rbuf, &rlen, INERT_EBADFD, sizeof(INERT_EBADFD)-1) < 0)
@@ -89,10 +95,9 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
 
     switch (command) {
         case INERT_FDSET:
-            rv = driver_select(d->port, event.ev, ERL_DRV_READ|ERL_DRV_USE, 1);
             break;
         case INERT_FDCLR:
-            rv = driver_select(d->port, event.ev, ERL_DRV_READ|0, 0);
+            on = 0;
             break;
         default:
             if (inert_copy(rbuf, &rlen, INERT_EINVAL, sizeof(INERT_EINVAL)-1) < 0)
@@ -102,22 +107,39 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
     }
 
     *rbuf = NULL;
-    return rv;
+    return driver_select(d->port, event.ev, mode, on);
 }
 
     static void
 inert_drv_ready_input(ErlDrvData drv_data, ErlDrvEvent event)
 {
+    inert_drv_ready(drv_data, event, ERL_DRV_READ);
+}
+
+    static void
+inert_drv_ready_output(ErlDrvData drv_data, ErlDrvEvent event)
+{
+    inert_drv_ready(drv_data, event, ERL_DRV_WRITE);
+}
+
+    static void
+inert_drv_ready(ErlDrvData drv_data, ErlDrvEvent event, int mode)
+{
     inert_drv_t *d = (inert_drv_t *)drv_data;
     int32_t fd = ((inert_fd_t)event).fd;
-    char res[4] = {0};
+    char res[8] = {0};
 
-    (void)driver_select(d->port, event, ERL_DRV_READ, 0);
+    (void)driver_select(d->port, event, mode, 0);
 
     res[0] = fd >> 24;
     res[1] = (fd >> 16) & 0xff;
     res[2] = (fd >> 8) & 0xff;
     res[3] = fd & 0xff;
+
+    res[4] = mode >> 24;
+    res[5] = (mode >> 16) & 0xff;
+    res[6] = (mode >> 8) & 0xff;
+    res[7] = mode & 0xff;
 
     (void)driver_output(d->port, res, sizeof(res));
 }
@@ -145,7 +167,7 @@ ErlDrvEntry inert_driver_entry = {
     inert_drv_stop,                 /* F_PTR stop, called when port is closed */
     NULL,                           /* F_PTR output, called when erlang has sent */
     inert_drv_ready_input,          /* F_PTR ready_input, called when input descriptor ready */
-    NULL,                           /* F_PTR ready_output, called when output descriptor ready */
+    inert_drv_ready_output,         /* F_PTR ready_output, called when output descriptor ready */
     "inert_drv",                    /* char *driver_name, the argument to open_port */
     NULL,                           /* F_PTR finish, called when unloaded */
     NULL,                           /* void *handle, Reserved by VM */

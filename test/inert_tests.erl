@@ -49,11 +49,11 @@ inert_select() ->
     gen_tcp:close(C2),
 
     receive
-        {inert, _, FD1} ->
+        {inert_read, _, FD1} ->
             error_logger:info_report([{fd, FD1}]),
             inert:fdclr(inert, FD1),
             receive
-                {inert, _, FD2} ->
+                {inert_read, _, FD2} ->
                     error_logger:info_report([{fd, FD2}]),
                     inert:fdclr(inert, FD2),
                     ok

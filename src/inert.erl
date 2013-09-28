@@ -32,6 +32,11 @@
         fds = dict:new()
     }).
 
+-record(inert_event, {
+        pid,
+        mode = read
+    }).
+
 start() ->
     start_link([]).
 start(Options) when is_list(Options) ->
@@ -58,7 +63,7 @@ poll(Ref, FD) ->
 
 poll(Ref, FD, Options) ->
     Timeout = proplists:get_value(timeout, Options, infinity),
-    case fdset(Ref, FD) of
+    case fdset(Ref, FD, Options) of
         ok ->
             poll_1(Ref, FD, Timeout);
         Error ->
@@ -69,7 +74,9 @@ poll_1(Ref, FD, Timeout) when is_atom(Ref) ->
     poll_1(whereis(Ref), FD, Timeout);
 poll_1(Ref, FD, Timeout) when is_pid(Ref) ->
     receive
-        {inert, Ref, FD} ->
+        {inert_read, Ref, FD} ->
+            ok;
+        {inert_write, Ref, FD} ->
             ok;
         {inert_error, Ref, Error} ->
             {error, Error}
@@ -91,19 +98,24 @@ init([_Options]) ->
             port = Port
         }}.
 
-handle_call({fdset, FD, _Options}, {Pid,_}, #state{port = Port, fds = FDS} = State) ->
-    Event = inert_drv:encode(FD),
+handle_call({fdset, FD, Options}, {Pid,_}, #state{port = Port, fds = FDS} = State) ->
+    Mode = proplists:get_value(mode, Options, read),
+    Event = inert_drv:encode({FD, Mode}),
     Reply = inert_drv:send(Port, fdset, Event),
     FDS1 = case Reply of
         ok ->
-            dict:store(FD, Pid, FDS);
+            dict:store(FD, #inert_event{
+                    pid = Pid,
+                    mode = Mode
+                }, FDS);
         _Error ->
             FDS
     end,
     {reply, Reply, State#state{fds = FDS1}};
 
-handle_call({fdclr, FD, _Options}, _From, #state{port = Port, fds = FDS} = State) ->
-    Event = inert_drv:encode(FD),
+handle_call({fdclr, FD, Options}, _From, #state{port = Port, fds = FDS} = State) ->
+    Mode = proplists:get_value(mode, Options, read_write),
+    Event = inert_drv:encode({FD, Mode}),
     Reply = inert_drv:send(Port, fdclr, Event),
     FDS1 = dict:erase(FD, FDS),
     {reply, Reply, State#state{fds = FDS1}};
@@ -125,16 +137,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Port communication
 %%--------------------------------------------------------------------
 handle_info({Port, {data, Data}}, #state{port = Port, fds = FDS} = State) ->
-    Event = inert_drv:decode(Data),
-    case dict:find(Event, FDS) of
-        {ok, Caller} ->
-            Caller ! {inert, self(), Event};
+    {FD, Mode} = inert_drv:decode(Data),
+    case dict:find(FD, FDS) of
+        {ok, #inert_event{pid = Pid}} ->
+            Pid ! {mode(Mode), self(), FD};
         error ->
-            error_logger:error_report([
-                    {error, "event not found"},
-                    {event, Event},
-                    {fds, dict:to_list(FDS)}
-                ])
+            ok
     end,
     {noreply, State};
 
@@ -150,3 +158,6 @@ handle_info(Info, State) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
+mode(N) when is_integer(N) -> mode(inert_drv:mode(N));
+mode(read) -> inert_read;
+mode(write) -> inert_write.

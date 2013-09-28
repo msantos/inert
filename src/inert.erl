@@ -91,22 +91,22 @@ init([_Options]) ->
             port = Port
         }}.
 
-handle_call({fdset, FD, _Options}, {Pid,_}, #state{port = Port, fds = FDs} = State) ->
+handle_call({fdset, FD, _Options}, {Pid,_}, #state{port = Port, fds = FDS} = State) ->
     Event = inert_drv:encode(FD),
     Reply = inert_drv:send(Port, fdset, Event),
-    FDs1 = case Reply of
+    FDS1 = case Reply of
         ok ->
-            dict:store(FD, Pid, FDs);
+            dict:store(FD, Pid, FDS);
         _Error ->
-            FDs
+            FDS
     end,
-    {reply, Reply, State#state{fds = FDs1}};
+    {reply, Reply, State#state{fds = FDS1}};
 
-handle_call({fdclr, FD, _Options}, _From, #state{port = Port, fds = FDs} = State) ->
+handle_call({fdclr, FD, _Options}, _From, #state{port = Port, fds = FDS} = State) ->
     Event = inert_drv:encode(FD),
     Reply = inert_drv:send(Port, fdclr, Event),
-    FDs1 = dict:erase(FD, FDs),
-    {reply, Reply, State#state{fds = FDs1}};
+    FDS1 = dict:erase(FD, FDS),
+    {reply, Reply, State#state{fds = FDS1}};
 
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State}.
@@ -124,16 +124,16 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Port communication
 %%--------------------------------------------------------------------
-handle_info({Port, {data, Data}}, #state{port = Port, fds = FDs} = State) ->
+handle_info({Port, {data, Data}}, #state{port = Port, fds = FDS} = State) ->
     Event = inert_drv:decode(Data),
-    case dict:find(Event, FDs) of
+    case dict:find(Event, FDS) of
         {ok, Caller} ->
             Caller ! {inert, self(), Event};
         error ->
             error_logger:error_report([
                     {error, "event not found"},
                     {event, Event},
-                    {fds, dict:to_list(FDs)}
+                    {fds, dict:to_list(FDS)}
                 ])
     end,
     {noreply, State};

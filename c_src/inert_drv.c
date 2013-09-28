@@ -1,9 +1,9 @@
 /* Copyright (c) 2013, Michael Santos <michael.santos@gmail.com>
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -153,24 +153,24 @@ ErlDrvEntry inert_driver_entry = {
     NULL,                           /* F_PTR timeout, reserved */
     NULL,                           /* F_PTR outputv, reserved */
     NULL,                           /* F_PTR ready_async, only for async drivers */
-    NULL,                           /* F_PTR flush, called when port is about 
-                                       to be closed, but there is data in driver 
+    NULL,                           /* F_PTR flush, called when port is about
+                                       to be closed, but there is data in driver
                                        queue */
     NULL,                           /* F_PTR call, much like control, sync call
                                        to driver */
-    NULL,                           /* F_PTR event, called when an event selected 
+    NULL,                           /* F_PTR event, called when an event selected
                                        by driver_event() occurs. */
-    ERL_DRV_EXTENDED_MARKER,        /* int extended marker, Should always be 
+    ERL_DRV_EXTENDED_MARKER,        /* int extended marker, Should always be
                                        set to indicate driver versioning */
-    ERL_DRV_EXTENDED_MAJOR_VERSION, /* int major_version, should always be 
+    ERL_DRV_EXTENDED_MAJOR_VERSION, /* int major_version, should always be
                                        set to this value */
-    ERL_DRV_EXTENDED_MINOR_VERSION, /* int minor_version, should always be 
+    ERL_DRV_EXTENDED_MINOR_VERSION, /* int minor_version, should always be
                                        set to this value */
     0,                              /* int driver_flags, see documentation */
     NULL,                           /* void *handle2, reserved for VM use */
-    NULL,                           /* F_PTR process_exit, called when a 
+    NULL,                           /* F_PTR process_exit, called when a
                                        monitored process dies */
-    NULL                            /* F_PTR stop_select, called to close an 
+    NULL                            /* F_PTR stop_select, called to close an
                                        event object */
 };
 

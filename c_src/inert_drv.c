@@ -39,7 +39,7 @@ typedef union {
 } inert_fd_t;
 
 static void inert_drv_ready(ErlDrvData, ErlDrvEvent, int);
-static int inert_copy(char **, ErlDrvSizeT *, char *, size_t);
+static ErlDrvSSizeT inert_copy(char **, ErlDrvSizeT *, char *, size_t);
 
     static ErlDrvData
 inert_drv_start(ErlDrvPort port, char *buf)
@@ -86,12 +86,8 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
     event.fd = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
     mode = (buf[4] << 24) | (buf[5] << 16) | (buf[6] << 8) | buf[7];
 
-    if (event.fd < 0) {
-        if (inert_copy(rbuf, &rlen, INERT_EBADFD, sizeof(INERT_EBADFD)-1) < 0)
-            return -1;
-
-        return rlen;
-    }
+    if (event.fd < 0)
+        return inert_copy(rbuf, &rlen, INERT_EBADFD, sizeof(INERT_EBADFD)-1);
 
     switch (command) {
         case INERT_FDSET:
@@ -100,10 +96,7 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
             on = 0;
             break;
         default:
-            if (inert_copy(rbuf, &rlen, INERT_EINVAL, sizeof(INERT_EINVAL)-1) < 0)
-                return -1;
-
-            return rlen;
+            return inert_copy(rbuf, &rlen, INERT_EINVAL, sizeof(INERT_EINVAL)-1);
     }
 
     *rbuf = NULL;
@@ -144,21 +137,27 @@ inert_drv_ready(ErlDrvData drv_data, ErlDrvEvent event, int mode)
     (void)driver_output(d->port, res, sizeof(res));
 }
 
-static int
+    static ErlDrvSSizeT
 inert_copy(char **rbuf, ErlDrvSizeT *rlen, char *buf, size_t buflen) {
+    /* max atom len = 255 + 1 byte NULL */
+    if (buflen > 256)
+        goto ERR;
+
     if (buflen > *rlen)
         *rbuf = driver_alloc(buflen);
 
-    if (*rbuf == NULL) {
-        *rlen = 0;
-        return -1;
-    }
+    if (*rbuf == NULL)
+        goto ERR;
 
     (void)memset(*rbuf, 0, *rlen);
     (void)memcpy(*rbuf, buf, buflen);
 
     *rlen = buflen;
-    return 0;
+    return buflen;
+
+ERR:
+    *rlen = 0;
+    return -1;
 }
 
 ErlDrvEntry inert_driver_entry = {

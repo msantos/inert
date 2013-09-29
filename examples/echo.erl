@@ -52,6 +52,7 @@ echo(Ref, Socket) ->
             ok = procket:close(Socket),
             ok;
         {ok, Buf} ->
+            ok = inert:poll(Ref, Socket, [{mode, write}]),
             ok = procket:write(Socket, Buf),
             echo(Ref, Socket)
     end.

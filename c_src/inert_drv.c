@@ -83,8 +83,15 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
     if (len != 8)
         return -1;
 
-    event.fd = (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3];
-    mode = (buf[4] << 24) | (buf[5] << 16) | (buf[6] << 8) | buf[7];
+    event.fd = ((unsigned char)buf[0] << 24)
+        | ((unsigned char)buf[1] << 16)
+        | ((unsigned char)buf[2] << 8)
+        | (unsigned char)buf[3];
+
+    mode = ((unsigned char)buf[4] << 24)
+        | ((unsigned char)buf[5] << 16)
+        | ((unsigned char)buf[6] << 8)
+        | (unsigned char)buf[7];
 
     if (event.fd < 0)
         return inert_copy(rbuf, &rlen, INERT_EBADFD, sizeof(INERT_EBADFD)-1);

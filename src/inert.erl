@@ -81,7 +81,7 @@ poll_1(Ref, FD, Timeout) when is_pid(Ref) ->
     after
         Timeout ->
             inert:fdclr(Ref, FD),
-            {error, eintr}
+            timeout
     end.
 
 

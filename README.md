@@ -44,7 +44,7 @@ crashing the emulator.
         Start the inert service.
 
     poll(Ref, FD) -> ok | {error, posix()}
-    poll(Ref, FD, Options) -> ok | {error, posix()}
+    poll(Ref, FD, Options) -> ok | timeout | {error, posix()}
 
         Types   Ref = pid()
                 FD = int32()
@@ -57,9 +57,7 @@ crashing the emulator.
 
         poll will block forever unless the timeout option is used.
         With the timeout option, poll will be interrupted after the
-        specified timeout (in milliseconds) and return:
-
-            {error, eintr}
+        specified timeout (in milliseconds) and return the atom 'timeout'.
 
     fdset(Ref, FD) -> ok | {error, posix()}
     fdset(Ref, FD, Options) -> ok | {error, posix()}
@@ -212,14 +210,6 @@ And of course, the simple, dumb way is to spin on the file descriptor:
         end.
 
 # TODO
-
-* what should `poll/2,3` return after a timeout?
-    * {error, eintr}
-    * {error, etimedout}
-    * timeout
-
-    select(2) and poll(2) return 0 with errno unset to indicate no fd's
-    have changed.
 
 * this will cause a segfault when inet goes to close the fd
 

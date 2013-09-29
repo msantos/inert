@@ -23,6 +23,7 @@ inert_test_() ->
             {?LINE, fun inert_select/0},
             {?LINE, fun inert_badfd/0},
             {?LINE, fun inert_stream/0},
+            {?LINE, fun inert_poll_timeout/0},
             {?LINE, fun inert_stateless_fdset/0}
         ]}}.
 
@@ -121,6 +122,11 @@ connect(Port, N) ->
     ok = gen_tcp:send(C, <<Bin/binary, Bin/binary, Bin/binary>>),
     ok = gen_tcp:close(C),
     connect(Port, N-1).
+
+inert_poll_timeout() ->
+    {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),
+    {ok, FD} = inet:getfd(Socket),
+    timeout = inert:poll(inert, FD, [{timeout, 10}]).
 
 % Test successive calls to fdset overwrite the previous mode
 inert_stateless_fdset() ->

@@ -77,9 +77,7 @@ poll_1(Ref, FD, Timeout) when is_pid(Ref) ->
         {inert_read, Ref, FD} ->
             ok;
         {inert_write, Ref, FD} ->
-            ok;
-        {inert_error, Ref, Error} ->
-            {error, Error}
+            ok
     after
         Timeout ->
             inert:fdclr(Ref, FD),

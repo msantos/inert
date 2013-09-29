@@ -163,7 +163,7 @@ poll(Ref, Socket) ->
 
 So why would you use `inert` instead of `inet`?
 
-1. You want monitor to socket events without using inet. For example,
+1. You want to monitor socket events without using inet. For example,
    to use socket interfaces like sendmsg(2) and recvmsg(2).
 
 2. You want to experiment with alternatives to inet.
@@ -184,7 +184,7 @@ in inet ({active, true}, {active, once}, {active, false}).
 UDP data. If you pass in other types of packets, you may run into some
 weird behaviour. For example, see:
 
-    https://github.com/erlang/otp/commit/169080db01101a4db6b1c265d04d972f3c39488a#diff-a2cead50e09b9f8f4a7f0d8d5ce986f7
+https://github.com/erlang/otp/commit/169080db01101a4db6b1c265d04d972f3c39488a#diff-a2cead50e09b9f8f4a7f0d8d5ce986f7
 
 ## erlang:open\_port/2
 
@@ -197,19 +197,19 @@ Works with any type of non-blocking file descriptor:
 
 And of course, the simple, dumb way is to spin on the file descriptor:
 
-   spin(FD) ->
-    case procket:read(FD, 16#ffff) of
-        {ok, <<>>} ->
-            ok = procket:close(FD),
-            ok;
-        {ok, Buf} ->
-            {ok, Buf};
-        {error, eagain} ->
-            timer:sleep(10),
-            spin(FD);
-        {error, Error} ->
-            {error, Error}
-    end.
+    spin(FD) ->
+        case procket:read(FD, 16#ffff) of
+            {ok, <<>>} ->
+                ok = procket:close(FD),
+                ok;
+            {ok, Buf} ->
+                {ok, Buf};
+            {error, eagain} ->
+                timer:sleep(10),
+                spin(FD);
+            {error, Error} ->
+                {error, Error}
+        end.
 
 # TODO
 

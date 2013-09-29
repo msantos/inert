@@ -78,12 +78,15 @@ crashing the emulator.
         When requesting a monitoring mode of read_write, the calling
         process may receive two messages (one for read, one for write).
 
+        Further events are not monitored after the message is sent. To
+        re-enable monitoring, fdset/2,3 must be called again.
+
         Successive calls to fdset/2,3 reset the mode:
 
             fdset(Ref, FD, [{mode, read_write}]),
             fdset(Ref, FD, [{mode, write}]).
             % monitoring the fd for write events only
-        
+
     fdclr(Ref, FD) -> ok | {error, posix()}
     fdclr(Ref, FD, Options) -> ok | {error, posix()}
 
@@ -98,7 +101,7 @@ crashing the emulator.
 
 inert\_drv is a wrapper around driver\_select() found in erl\_driver. See:
 
-    http://www.erlang.org/doc/man/erl_driver.html#driver_select
+http://www.erlang.org/doc/man/erl\_driver.html#driver\_select
 
 # EXAMPLES
 

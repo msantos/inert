@@ -101,7 +101,7 @@ crashing the emulator.
 
 inert\_drv is a wrapper around driver\_select() found in erl\_driver. See:
 
-http://www.erlang.org/doc/man/erl\_driver.html#driver\_select
+http://www.erlang.org/doc/man/erl_driver.html#driver_select
 
 # EXAMPLES
 

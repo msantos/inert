@@ -63,7 +63,10 @@ inert_select() ->
 
 inert_badfd() ->
     {error, ebadfd} = inert:fdset(inert, -1),
-    {error, ebadfd} = inert:poll(inert, -1).
+    {error, ebadfd} = inert:poll(inert, -1),
+    {error, ebadfd} = inert:fdset(inert, 127),
+    {error, ebadfd} = inert:fdset(inert, 128),
+    {error, ebadfd} = inert:fdset(inert, 10000).
 
 inert_stream() ->
     N = 1000,

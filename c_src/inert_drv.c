@@ -20,6 +20,9 @@
 
 #include <string.h>
 
+#include <unistd.h>
+#include <fcntl.h>
+
 #include "erl_driver.h"
 #include "ei.h"
 
@@ -93,7 +96,7 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
         | ((unsigned char)buf[6] << 8)
         | (unsigned char)buf[7];
 
-    if (event.fd < 0)
+    if (event.fd < 0 || fcntl(event.fd, F_GETFD) < 0)
         return inert_copy(rbuf, &rlen, INERT_EBADFD, sizeof(INERT_EBADFD)-1);
 
     switch (command) {

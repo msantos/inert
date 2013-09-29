@@ -49,6 +49,7 @@ echo(Ref, Socket) ->
     case procket:read(Socket, 16#ffff) of
         {ok, <<>>} ->
             error_logger:info_report([{close, Socket}]),
+            ok = inert:fdclr(Ref, Socket),
             ok = procket:close(Socket),
             ok;
         {ok, Buf} ->

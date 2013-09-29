@@ -91,6 +91,14 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
 
     switch (command) {
         case INERT_FDSET:
+            /* Successive calls to driver_select do not overwrite the
+             * previous mode of an event. From testing, it looks like
+             * the modes are OR'ed together.
+             *
+             * Reset the mode when apply a new mode (ignoring ERL_DRV_USE).
+             */
+            if (driver_select(d->port, event.ev, ERL_DRV_READ|ERL_DRV_WRITE, 0) < 0)
+                return -1;
             break;
         case INERT_FDCLR:
             on = 0;

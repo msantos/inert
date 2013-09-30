@@ -228,6 +228,92 @@ And of course, the simple, dumb way is to spin on the file descriptor:
                 {error, Error}
         end.
 
+# Behaviour of driver\_select()
+
+The documentation for driver\_select() is a little confusing. These are
+some notes describing the empirical behaviour of driver\_select().
+
+The function signature for driver\_select() is:
+
+    int driver_select(ErlDrvPort port, ErlDrvEvent event, int mode, int on)
+
+* the `return value` is either 0 or -1. However, it will only return
+  error in the case the driver has not defined the ready\_input callback
+  (for the ERL\_DRV\_READ mode) or the ready\_output callback (for the
+  ERL\_DRV\_WRITE mode)
+
+* on Unix platforms, the `event` is simply a file descriptor which is
+  represented as an int. The size of the `ErlDrvEvent` type varies:
+
+    * int (32/64-bit): 4 bytes
+    * ErlDrvEvent (32-bit VM): 4 bytes
+    * ErlDrvEvent (64-bit VM): 8 bytes
+
+  The ErlDrvEvent type needs to be cast or included in a union:
+
+        typedef union {
+            ErlDrvEvent ev;
+            int32_t fd;
+        } inert_fd_t;
+
+* the `mode` describes the event types which the file descriptor will
+  be monitored:
+
+    * ERL\_DRV\_READ: call the ready\_input callback when the file
+      descriptor is ready for reading
+
+    * ERL\_DRV\_WRITE: call the ready\_output callback when the file
+      descriptor is ready for writing
+
+    * ERL\_DRV\_USE: call the stop\_select callback when it is safe for
+      the file descriptor to be closed
+
+  The modes in successive calls to driver\_select() are OR'ed with the
+  previous value.
+
+        driver_select(port, event, ERL_DRV_READ, 1)
+        // mode = read
+        driver_select(port, event, ERL_DRV_WRITE, 1)
+        // mode = read, write
+
+* the `on` argument is used to either set (1) or clear (0) modes from
+  an event
+
+The only modes defined for old drivers was monitoring for read and write
+events. An additional mode (ERL\_DRV\_USE) was introduced to allow the
+driver to indicate to the VM when it is safe to close events, necessary on
+SMP VMs where one thread may close an event that another thread is using.
+
+To support old drivers, the ERL\_DRV\_USE mode is not required. Any use
+of the ERL\_DRV\_USE mode (either setting or clearing) results in the
+VM issuing a warning if the driver does not support the stop\_select
+callback.
+
+The interaction between `mode` and `on`:
+
+    * mode:ERL\_DRV\_READ, ERL\_DRV\_WRITE ERL\_DRV\_USE, on:1
+
+      The mode is OR'ed with the existing mode for the event. If
+      ERL\_DRV\_USE was not previously set, the VM will now check for
+      the existence of a stop\_select callback and issue a warning if
+      it does not exist.
+
+    * mode:ERL\_DRV\_USE, on:1
+
+      Setting the mode for the event to only `use` indicates to the
+      VM that the event will be re-used. Presumably the VM will not
+      de-allocate resources for the event.
+
+    * mode:ERL\_DRV\_READ, ERL\_DRV\_WRITE, on:0
+
+      The mode is NOT'ed from the existing mode for the event.
+
+    * mode:ERL\_DRV\_USE, on:0
+
+      Indicate to the VM that resources associated with the event can
+      be scheduled for de-allocation. When all uses of the event have
+      completed, the VM will call the driver's stop\_schedule callback.
+
 # TODO
 
 * this will cause a segfault when inet goes to close the fd

@@ -291,28 +291,27 @@ callback.
 
 The interaction between `mode` and `on`:
 
-    * mode:ERL\_DRV\_READ, ERL\_DRV\_WRITE ERL\_DRV\_USE, on:1
+* mode:ERL\_DRV\_READ, ERL\_DRV\_WRITE ERL\_DRV\_USE, on:1
 
-      The mode is OR'ed with the existing mode for the event. If
-      ERL\_DRV\_USE was not previously set, the VM will now check for
-      the existence of a stop\_select callback and issue a warning if
-      it does not exist.
+  The mode is OR'ed with the existing mode for the event. If ERL\_DRV\_USE
+  was not previously set, the VM will now check for the existence of a
+  stop\_select callback and issue a warning if it does not exist.
 
-    * mode:ERL\_DRV\_USE, on:1
+* mode:ERL\_DRV\_USE, on:1
 
-      Setting the mode for the event to only `use` indicates to the
-      VM that the event will be re-used. Presumably the VM will not
-      de-allocate resources for the event.
+  Setting the mode for the event to only `use` indicates to the VM that
+  the event will be re-used. Presumably the VM will not de-allocate
+  resources for the event.
 
-    * mode:ERL\_DRV\_READ, ERL\_DRV\_WRITE, on:0
+* mode:ERL\_DRV\_READ, ERL\_DRV\_WRITE, on:0
 
-      The mode is NOT'ed from the existing mode for the event.
+  The mode is NOT'ed from the existing mode for the event.
 
-    * mode:ERL\_DRV\_USE, on:0
+* mode:ERL\_DRV\_USE, on:0
 
-      Indicate to the VM that resources associated with the event can
-      be scheduled for de-allocation. When all uses of the event have
-      completed, the VM will call the driver's stop\_schedule callback.
+  Indicate to the VM that resources associated with the event can be
+  scheduled for de-allocation. When all uses of the event have completed,
+  the VM will call the driver's stop\_schedule callback.
 
 # TODO
 

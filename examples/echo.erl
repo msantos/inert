@@ -19,7 +19,7 @@
     ]).
 
 listen() ->
-    listen(8081).
+    listen(0).
 
 listen(Port) ->
     {ok, Ref} = inert:start(),
@@ -34,6 +34,9 @@ listen(Port) ->
     BACKLOG = 50,
     ok = procket:bind(Socket, Sockaddr),
     ok = procket:listen(Socket, BACKLOG),
+
+    {ok, <<_:16, ListenPort:16, _/binary>>} = procket:getsockname(Socket, Sockaddr),
+    error_logger:info_report([{listening, ListenPort}]),
 
     accept(Ref, Socket).
 

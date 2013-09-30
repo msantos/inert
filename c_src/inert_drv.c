@@ -205,7 +205,7 @@ ErlDrvEntry inert_driver_entry = {
                                        set to this value */
     ERL_DRV_EXTENDED_MINOR_VERSION, /* int minor_version, should always be
                                        set to this value */
-    0,                              /* int driver_flags, see documentation */
+    ERL_DRV_FLAG_USE_PORT_LOCKING,  /* int driver_flags, see documentation */
     NULL,                           /* void *handle2, reserved for VM use */
     NULL,                           /* F_PTR process_exit, called when a
                                        monitored process dies */

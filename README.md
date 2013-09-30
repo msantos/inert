@@ -53,7 +53,7 @@ crashing the emulator.
                 Mode = read | write | read_write
 
         poll/2,3 blocks until a file descriptor is ready for reading
-        or writing (default: read).
+        or writing (default mode: read).
 
         poll will block forever unless the timeout option is used.
         With the timeout option, poll will be interrupted after the
@@ -67,10 +67,10 @@ crashing the emulator.
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
 
-        Monitor a file descriptor for events. The default monitoring
-        mode is {mode,read}.
+        Monitor a file descriptor for events (default mode: read).
 
-        fdset/2,3 will send one message for each read or write event:
+        fdset/2,3 will send one message when a file descriptor is ready
+        for reading or writing:
 
             {inert_read, Ref, FD}   % fd is ready for reading
             {inert_write, Ref, FD}  % fd is ready for writing
@@ -164,10 +164,11 @@ poll(Ref, Socket) ->
 
 So why would you use `inert` instead of `inet`?
 
-1. You want to monitor socket events without using inet. For example,
-   to use socket interfaces like sendmsg(2) and recvmsg(2).
+* You have to monitor socket events without using inet. For example,
+  to use socket interfaces like sendmsg(2) and recvmsg(2).
 
-2. You want to experiment with alternatives to inet.
+* You want to experiment with alternatives to inet. It'd be interesting
+  to experiment with moving some of the network code from C to Erlang.
 
 Otherwise, there are a few builtin methods for polling file descriptors
 in Erlang. All of these methods will read/write from the socket on
@@ -192,7 +193,22 @@ https://github.com/erlang/otp/commit/169080db01101a4db6b1c265d04d972f3c39488a#di
 Works with any type of non-blocking file descriptor:
 
     FD = 7,
-    {ok, Ref} = erlang:open_port({fd, FD, FD}, [stream,binary]).
+    {ok, Port} = erlang:open_port({fd, FD, FD}, [stream,binary]).
+
+Ports do not have a built in way to do flow control (inet is a port but
+the flow control is done within the driver). Flow control can be done
+by closing the port and re-opening it after the data in the mailbox has
+been processed:
+
+    % synchronous close of port, flushes buffers
+    erlang:port_close(Port),
+    % process data
+    {ok, Port1} = erlang:open_port({fd, FD, FD}, [stream,binary]).
+
+    % async close
+    Port1 ! {self(), close}
+    % process data
+    {ok, Port2} = erlang:open_port({fd, FD, FD}, [stream,binary]).
 
 ## Busy waiting
 

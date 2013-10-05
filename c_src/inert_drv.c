@@ -105,7 +105,8 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
              * previous mode of an event. From testing, it looks like
              * the modes are OR'ed together.
              *
-             * Reset the mode when apply a new mode (ignoring ERL_DRV_USE).
+             * Reset the mode when applying a new mode (ignoring
+             * ERL_DRV_USE).
              */
             if (driver_select(d->port, event.ev, ERL_DRV_READ|ERL_DRV_WRITE, 0) < 0)
                 return -1;
@@ -156,7 +157,8 @@ inert_drv_ready(ErlDrvData drv_data, ErlDrvEvent event, int mode)
 }
 
     static ErlDrvSSizeT
-inert_copy(char **rbuf, ErlDrvSizeT *rlen, char *buf, size_t buflen) {
+inert_copy(char **rbuf, ErlDrvSizeT *rlen, char *buf, size_t buflen)
+{
     /* max atom len = 255 + 1 byte NULL */
     if (buflen > 256)
         goto ERR;
@@ -205,7 +207,7 @@ ErlDrvEntry inert_driver_entry = {
                                        set to this value */
     ERL_DRV_EXTENDED_MINOR_VERSION, /* int minor_version, should always be
                                        set to this value */
-    ERL_DRV_FLAG_USE_PORT_LOCKING,  /* int driver_flags, see documentation */
+    ERL_DRV_FLAG_USE_PORT_LOCKING|ERL_DRV_FLAG_SOFT_BUSY,  /* int driver_flags, see documentation */
     NULL,                           /* void *handle2, reserved for VM use */
     NULL,                           /* F_PTR process_exit, called when a
                                        monitored process dies */

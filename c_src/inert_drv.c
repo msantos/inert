@@ -159,8 +159,8 @@ inert_drv_ready(ErlDrvData drv_data, ErlDrvEvent event, int mode)
     static ErlDrvSSizeT
 inert_copy(char **rbuf, ErlDrvSizeT *rlen, char *buf, size_t buflen)
 {
-    /* max atom len = 255 + 1 byte NULL */
-    if (buflen > 256)
+    /* The max atom len is 255 bytes (not including the NULL) */
+    if (buflen > 255)
         goto ERR;
 
     if (buflen > *rlen)

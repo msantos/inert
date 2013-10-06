@@ -5,9 +5,9 @@ _WARNING:_ this library is under development
 
 # QUICK USAGE
 
-    STDIN = 1,
+    STDOUT = 1,
     {ok, Ref} = inert:start(),
-    ok = inert:poll(Ref, STDIN).
+    ok = inert:poll(Ref, STDOUT).
 
 # OVERVIEW
 
@@ -37,7 +37,7 @@ crashing the emulator.
 
 ## inert
 
-    start() -> {ok, Ref}
+    start() -> {ok, Ref} | posix()
 
         Types   Ref = pid()
 
@@ -99,7 +99,8 @@ crashing the emulator.
 
 ## inert\_drv
 
-inert\_drv is a wrapper around driver\_select() found in erl\_driver. See:
+inert\_drv is a wrapper around the driver\_select() function in the
+erl\_driver API. See:
 
 http://www.erlang.org/doc/man/erl_driver.html#driver_select
 
@@ -118,8 +119,8 @@ See `examples/echo.erl`. To run it:
 
 ## Connecting to a port
 
-This (slightly terrifying) example uses procket and the BSD socket
-interface to connect to SSH on localhost and read the version header. It
+This (slightly terrifying) example uses the BSD socket interface in
+procket to connect to SSH on localhost and read the version header. It
 is the equivalent of:
 
     {ok, Socket} = gen_tcp:connect("localhost", 22, [binary, {active,false}]),
@@ -131,7 +132,9 @@ is the equivalent of:
 
 -export([ssh/0]).
 
+-ifndef(SO_ERROR).
 -define(SO_ERROR, 4).
+-endif.
 
 ssh() ->
     {ok, Ref} = inert:start(),
@@ -230,8 +233,8 @@ And of course, the simple, dumb way is to spin on the file descriptor:
 
 # Behaviour of driver\_select()
 
-The documentation for driver\_select() is a little confusing. These are
-some notes describing the empirical behaviour of driver\_select().
+These are some notes describing the empirical behaviour of
+driver\_select().
 
 The function signature for driver\_select() is:
 
@@ -242,8 +245,8 @@ The function signature for driver\_select() is:
   (for the ERL\_DRV\_READ mode) or the ready\_output callback (for the
   ERL\_DRV\_WRITE mode)
 
-* on Unix platforms, the `event` is simply a file descriptor which is
-  represented as an int. The size of the `ErlDrvEvent` type varies:
+* on Unix platforms, `event` is simply a file descriptor which is
+  represented as an int but the size of the `ErlDrvEvent` type varies:
 
     * int (32/64-bit): 4 bytes
     * ErlDrvEvent (32-bit VM): 4 bytes
@@ -256,8 +259,7 @@ The function signature for driver\_select() is:
             int32_t fd;
         } inert_fd_t;
 
-* the `mode` describes the event types which the file descriptor will
-  be monitored:
+* `mode` sets which events the file descriptor will be monitored:
 
     * ERL\_DRV\_READ: call the ready\_input callback when the file
       descriptor is ready for reading
@@ -330,4 +332,4 @@ The interaction between `mode` and `on`:
 
 * pass in sets of file descriptors
 
-        inert:fdset([7, {8, write}, {11, read_write}])
+        inert:fdset([7, {8, write}, 11], [{mode, read}])

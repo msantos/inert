@@ -34,6 +34,7 @@
 
 typedef struct {
     ErlDrvTermData caller;
+    u_int8_t monitored;
 } inert_state_t;
 
 typedef struct {
@@ -74,14 +75,27 @@ inert_drv_start(ErlDrvPort port, char *buf)
     if (!d)
         return ERL_DRV_ERROR_ERRNO;
 
+    (void)memset(d->state, 0, rlim.rlim_max * sizeof(inert_state_t));
+
     return (ErlDrvData)d;
 }
 
     static void
 inert_drv_stop(ErlDrvData drv_data)
 {
-    driver_free(((inert_drv_t *)drv_data)->state);
-    driver_free(drv_data);
+    inert_drv_t *d = (inert_drv_t *)drv_data;
+    int fd = 0;
+
+    for (fd = 0; fd < d->maxfd; fd++) {
+        if (d->state[fd].monitored) {
+            inert_fd_t event = {0};
+            event.fd = fd;
+            driver_select(d->port, event.ev, ERL_DRV_READ|ERL_DRV_WRITE, 0);
+        }
+    }
+
+    driver_free(d->state);
+    driver_free(d);
 }
 
     static ErlDrvSSizeT
@@ -131,6 +145,7 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
     }
 
     d->state[event.fd].caller = driver_caller(d->port);
+    d->state[event.fd].monitored = 1;
 
     *rbuf = NULL;
     return driver_select(d->port, event.ev, mode, on);
@@ -156,6 +171,7 @@ inert_drv_ready(ErlDrvData drv_data, ErlDrvEvent event, int mode)
     char *tag = NULL;
 
     (void)driver_select(d->port, event, mode, 0);
+    d->state[fd].monitored = 0;
 
     switch (mode) {
         case ERL_DRV_READ:

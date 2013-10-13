@@ -320,19 +320,6 @@ The interaction between `mode` and `on`:
 
 # TODO
 
-* this will cause a segfault when inet goes to close the fd
-
-        1> {ok, Ref} = inert:start().
-        {ok,<0.35.0>}
-        2> {ok, Socket} = gen_tcp:listen(7171, [binary, {active,false}]).
-        {ok,#Port<0.955>}
-        3> inet:getfd(Socket).
-        {ok,7}
-        4> inert:fdset(Ref, 7).
-        ok
-        5> halt().
-        Segmentation fault (core dumped)
-
 * pass in sets of file descriptors
 
         inert:fdset([7, {8, write}, 11], [{mode, read}])

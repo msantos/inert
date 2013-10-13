@@ -43,14 +43,15 @@ crashing the emulator.
 
         Start the inert service.
 
-    poll(Ref, FD) -> ok | {error, posix()}
-    poll(Ref, FD, Options) -> ok | timeout | {error, posix()}
+    poll(Ref, FD) -> ok | {error, Error}
+    poll(Ref, FD, Options) -> ok | timeout | {error, Error}
 
         Types   Ref = port()
                 FD = int32()
                 Options = [ {timeout, Timeout} | {mode, Mode} ]
                 Timeout = infinity | uint()
                 Mode = read | write | read_write
+                Error = closed | posix()
 
         poll/2,3 blocks until a file descriptor is ready for reading
         or writing (default mode: read).
@@ -59,13 +60,14 @@ crashing the emulator.
         With the timeout option, poll will be interrupted after the
         specified timeout (in milliseconds) and return the atom 'timeout'.
 
-    fdset(Ref, FD) -> ok | {error, posix()}
-    fdset(Ref, FD, Options) -> ok | {error, posix()}
+    fdset(Ref, FD) -> ok | {error, Error}
+    fdset(Ref, FD, Options) -> ok | {error, Error}
 
         Types   Ref = port()
                 FD = int32()
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
+                Error = closed | posix()
 
         Monitor a file descriptor for events (default mode: read).
 
@@ -87,13 +89,14 @@ crashing the emulator.
             fdset(Ref, FD, [{mode, write}]).
             % monitoring the fd for write events only
 
-    fdclr(Ref, FD) -> ok | {error, posix()}
-    fdclr(Ref, FD, Options) -> ok | {error, posix()}
+    fdclr(Ref, FD) -> ok | {error, Error}
+    fdclr(Ref, FD, Options) -> ok | {error, Error}
 
         Types   Ref = port()
                 FD = int32()
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
+                Error = closed | posix()
 
         Clear an event set for a file descriptor.
 

@@ -41,9 +41,11 @@ stop() ->
 send(Port, Op, Data) when is_atom(Op) ->
     send(Port, command(Op), Data);
 send(Port, Op, Data) ->
-    case erlang:port_control(Port, Op, Data) of
+    try erlang:port_control(Port, Op, Data) of
         [] -> ok;
         Error -> {error, list_to_atom(Error)}
+    catch
+        error:badarg -> {error, closed}
     end.
 
 command(fdset) -> ?INERT_FDSET;

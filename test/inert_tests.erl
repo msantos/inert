@@ -27,7 +27,8 @@ inert_test_() ->
         {?LINE, fun() -> inert_badfd(Ref) end},
         {?LINE, fun() -> inert_stream(Ref) end},
         {?LINE, fun() -> inert_poll_timeout(Ref) end},
-        {?LINE, fun() -> inert_stateless_fdset(Ref) end}
+        {?LINE, fun() -> inert_stateless_fdset(Ref) end},
+        {?LINE, fun() -> inert_error_closed() end}
     ]}.
 
 inert_select(Ref) ->
@@ -159,3 +160,9 @@ inert_stateless_fdset(Ref) ->
         {inert_read, _, FD} ->
             ok
     end.
+
+% Catch the badarg if the port has been closed
+inert_error_closed() ->
+    {ok, Port} = inert:start(),
+    ok = inert:stop(Port),
+    {error, closed} = inert:poll(Port, 1).

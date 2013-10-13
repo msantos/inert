@@ -17,6 +17,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+-define(INERT_STREAM_NUM_BYTES, 1024).
+
 inert_test_() ->
     {ok, Ref} = inert:start(),
 
@@ -68,7 +70,7 @@ inert_badfd(Ref) ->
 
 inert_stream(Ref) ->
     N = case os:getenv("INERT_TEST_STREAM_RUNS") of
-        false -> 500;
+        false -> 10;
         Var -> list_to_integer(Var)
     end,
 
@@ -98,26 +100,31 @@ wait(S, N) ->
     end.
 
 read(Ref, Pid, FD) ->
+    read(Ref, Pid, FD, 0).
+read(Ref, Pid, FD, N) ->
     ok = inert:poll(Ref, FD),
-    error_logger:info_report([{poll, FD}]),
-    case procket:read(FD, 1024) of
+    case procket:read(FD, 1) of
         {ok, <<>>} ->
             procket:close(FD),
+            error_logger:info_report([
+                    {fd, FD},
+                    {read_bytes, N}
+                ]),
+            N = ?INERT_STREAM_NUM_BYTES,
             Pid ! {fd_close, FD};
         {ok, Buf} ->
-            error_logger:info_report([{fd, FD}, {size, byte_size(Buf)}, {buf, Buf}]),
-            read(Ref, Pid, FD);
+            read(Ref, Pid, FD, N + byte_size(Buf));
         {error, eagain} ->
             error_logger:info_report([{fd, FD}, {error, eagain}]),
-            read(Ref, Pid, FD);
+            read(Ref, Pid, FD, N);
         {error, Error} ->
             error_logger:error_report([{fd, FD}, {error, Error}])
     end.
 
 connect(Port, N) ->
     {ok, C} = gen_tcp:connect("localhost", Port, []),
-    {ok, Bin} = file:read_file("/etc/passwd"),
-    ok = gen_tcp:send(C, <<Bin/binary, Bin/binary, Bin/binary>>),
+    Bin = crypto:rand_bytes(?INERT_STREAM_NUM_BYTES),
+    ok = gen_tcp:send(C, Bin),
     ok = gen_tcp:close(C),
     connect(Port, N-1).
 

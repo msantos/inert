@@ -70,7 +70,10 @@ inert_badfd() ->
     {error, ebadfd} = inert:fdset(inert, 10000).
 
 inert_stream() ->
-    N = 1000,
+    N = case os:getenv("INERT_TEST_STREAM_RUNS") of
+        false -> 500;
+        Var -> list_to_integer(Var)
+    end,
 
     {ok, Socket} = gen_tcp:listen(0, [binary,{active,false}]),
     {ok, Port} = inet:port(Socket),
@@ -85,7 +88,6 @@ accept(S, X, 0) ->
 accept(S, X, N) ->
     {ok, S1} = gen_tcp:accept(S),
     {ok, FD} = inet:getfd(S1),
-    %ok = prim_inet:ignorefd(S1, true),
     Self = self(),
     spawn(fun() -> read(Self, FD) end),
     accept(S, X, N-1).
@@ -117,7 +119,6 @@ read(Pid, FD) ->
 
 connect(Port, N) ->
     {ok, C} = gen_tcp:connect("localhost", Port, []),
-    %ok = gen_tcp:send(C, <<"abc1234567890">>),
     {ok, Bin} = file:read_file("/etc/passwd"),
     ok = gen_tcp:send(C, <<Bin/binary, Bin/binary, Bin/binary>>),
     ok = gen_tcp:close(C),

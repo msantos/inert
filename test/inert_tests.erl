@@ -17,8 +17,6 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--define(INERT_STREAM_NUM_BYTES, 1024).
-
 inert_test_() ->
     {ok, Ref} = inert:start(),
 
@@ -111,7 +109,7 @@ read(Ref, Pid, FD, N) ->
                     {fd, FD},
                     {read_bytes, N}
                 ]),
-            N = ?INERT_STREAM_NUM_BYTES,
+            N = stream_num_bytes(),
             Pid ! {fd_close, FD};
         {ok, Buf} ->
             read(Ref, Pid, FD, N + byte_size(Buf));
@@ -124,10 +122,16 @@ read(Ref, Pid, FD, N) ->
 
 connect(Port, N) ->
     {ok, C} = gen_tcp:connect("localhost", Port, []),
-    Bin = crypto:rand_bytes(?INERT_STREAM_NUM_BYTES),
+    Bin = crypto:rand_bytes(stream_num_bytes()),
     ok = gen_tcp:send(C, Bin),
     ok = gen_tcp:close(C),
     connect(Port, N-1).
+
+stream_num_bytes() ->
+    case os:getenv("INERT_TEST_STREAM_NUM_BYTES") of
+        false -> 1024;
+        Var -> list_to_integer(Var)
+    end.
 
 inert_poll_timeout(Ref) ->
     {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),

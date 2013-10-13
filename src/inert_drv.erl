@@ -36,7 +36,7 @@ start() ->
     end.
 
 stop() ->
-    ok.
+    erl_ddll:unload_driver(?MODULE).
 
 send(Port, Op, Data) when is_atom(Op) ->
     send(Port, command(Op), Data);

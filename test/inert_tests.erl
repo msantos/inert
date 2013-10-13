@@ -18,20 +18,17 @@
 -include_lib("eunit/include/eunit.hrl").
 
 inert_test_() ->
-    {setup, fun inert_setup/0,
-        {timeout, 480, [
-            {?LINE, fun inert_select/0},
-            {?LINE, fun inert_badfd/0},
-            {?LINE, fun inert_stream/0},
-            {?LINE, fun inert_poll_timeout/0},
-            {?LINE, fun inert_stateless_fdset/0}
-        ]}}.
-
-inert_setup() ->
     {ok, Ref} = inert:start(),
-    register(inert, Ref).
 
-inert_select() ->
+    {timeout, 480, [
+        {?LINE, fun() -> inert_select(Ref) end},
+        {?LINE, fun() -> inert_badfd(Ref) end},
+        {?LINE, fun() -> inert_stream(Ref) end},
+        {?LINE, fun() -> inert_poll_timeout(Ref) end},
+        {?LINE, fun() -> inert_stateless_fdset(Ref) end}
+    ]}.
+
+inert_select(Ref) ->
     {ok, Sock1} = gen_tcp:listen(0, [binary,{active,false}]),
     {ok, Sock2} = gen_tcp:listen(0, [binary,{active,false}]),
 
@@ -41,8 +38,8 @@ inert_select() ->
     {ok, FD1} = inet:getfd(Sock1),
     {ok, FD2} = inet:getfd(Sock2),
 
-    ok = inert:fdset(inert, FD1),
-    ok = inert:fdset(inert, FD2),
+    ok = inert:fdset(Ref, FD1),
+    ok = inert:fdset(Ref, FD2),
 
     {ok, C1} = gen_tcp:connect("localhost", Port1, []),
     {ok, C2} = gen_tcp:connect("localhost", Port2, []),
@@ -53,23 +50,23 @@ inert_select() ->
     receive
         {inert_read, _, FD1} ->
             error_logger:info_report([{fd, FD1}]),
-            inert:fdclr(inert, FD1),
+            inert:fdclr(Ref, FD1),
             receive
                 {inert_read, _, FD2} ->
                     error_logger:info_report([{fd, FD2}]),
-                    inert:fdclr(inert, FD2),
+                    inert:fdclr(Ref, FD2),
                     ok
             end
     end.
 
-inert_badfd() ->
-    {error, ebadfd} = inert:fdset(inert, -1),
-    {error, ebadfd} = inert:poll(inert, -1),
-    {error, ebadfd} = inert:fdset(inert, 127),
-    {error, ebadfd} = inert:fdset(inert, 128),
-    {error, ebadfd} = inert:fdset(inert, 10000).
+inert_badfd(Ref) ->
+    {error, ebadfd} = inert:fdset(Ref, -1),
+    {error, ebadfd} = inert:poll(Ref, -1),
+    {error, ebadfd} = inert:fdset(Ref, 127),
+    {error, ebadfd} = inert:fdset(Ref, 128),
+    {error, ebadfd} = inert:fdset(Ref, 10000).
 
-inert_stream() ->
+inert_stream(Ref) ->
     N = case os:getenv("INERT_TEST_STREAM_RUNS") of
         false -> 500;
         Var -> list_to_integer(Var)
@@ -78,19 +75,19 @@ inert_stream() ->
     {ok, Socket} = gen_tcp:listen(0, [binary,{active,false}]),
     {ok, Port} = inet:port(Socket),
     spawn(fun() -> connect(Port, N) end),
-    accept(Socket, N).
+    accept(Ref, Socket, N).
 
-accept(S,N) ->
-    accept(S,N,N).
+accept(Ref,S,N) ->
+    accept(Ref,S,N,N).
 
-accept(S, X, 0) ->
+accept(_Ref, S, X, 0) ->
     wait(S, X);
-accept(S, X, N) ->
+accept(Ref, S, X, N) ->
     {ok, S1} = gen_tcp:accept(S),
     {ok, FD} = inet:getfd(S1),
     Self = self(),
-    spawn(fun() -> read(Self, FD) end),
-    accept(S, X, N-1).
+    spawn(fun() -> read(Ref, Self, FD) end),
+    accept(Ref, S, X, N-1).
 
 wait(S, 0) ->
     gen_tcp:close(S);
@@ -100,8 +97,8 @@ wait(S, N) ->
             wait(S, N-1)
     end.
 
-read(Pid, FD) ->
-    ok = inert:poll(inert, FD),
+read(Ref, Pid, FD) ->
+    ok = inert:poll(Ref, FD),
     error_logger:info_report([{poll, FD}]),
     case procket:read(FD, 1024) of
         {ok, <<>>} ->
@@ -109,10 +106,10 @@ read(Pid, FD) ->
             Pid ! {fd_close, FD};
         {ok, Buf} ->
             error_logger:info_report([{fd, FD}, {size, byte_size(Buf)}, {buf, Buf}]),
-            read(Pid, FD);
+            read(Ref, Pid, FD);
         {error, eagain} ->
             error_logger:info_report([{fd, FD}, {error, eagain}]),
-            read(Pid, FD);
+            read(Ref, Pid, FD);
         {error, Error} ->
             error_logger:error_report([{fd, FD}, {error, Error}])
     end.
@@ -124,19 +121,19 @@ connect(Port, N) ->
     ok = gen_tcp:close(C),
     connect(Port, N-1).
 
-inert_poll_timeout() ->
+inert_poll_timeout(Ref) ->
     {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),
     {ok, FD} = inet:getfd(Socket),
-    timeout = inert:poll(inert, FD, [{timeout, 10}]).
+    timeout = inert:poll(Ref, FD, [{timeout, 10}]).
 
 % Test successive calls to fdset overwrite the previous mode
-inert_stateless_fdset() ->
+inert_stateless_fdset(Ref) ->
     {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),
     {ok, Port} = inet:port(Socket),
     {ok, FD} = inet:getfd(Socket),
 
-    ok = inert:fdset(inert, FD, [{mode, read_write}]),
-    ok = inert:fdset(inert, FD, [{mode, write}]),
+    ok = inert:fdset(Ref, FD, [{mode, read_write}]),
+    ok = inert:fdset(Ref, FD, [{mode, write}]),
 
     {ok, Conn} = gen_tcp:connect("localhost", Port, [binary]),
     ok = gen_tcp:close(Conn),
@@ -149,7 +146,7 @@ inert_stateless_fdset() ->
             ok
     end,
 
-    ok = inert:fdset(inert, FD, [{mode, read}]),
+    ok = inert:fdset(Ref, FD, [{mode, read}]),
 
     receive
         {inert_read, _, FD} ->

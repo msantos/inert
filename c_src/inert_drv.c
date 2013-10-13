@@ -33,7 +33,13 @@
 #define INERT_FDCLR     2
 
 typedef struct {
+    ErlDrvTermData caller;
+} inert_state_t;
+
+typedef struct {
     ErlDrvPort port;
+    u_int32_t maxfd;
+    inert_state_t *state;
 } inert_drv_t;
 
 typedef union {
@@ -63,12 +69,18 @@ inert_drv_start(ErlDrvPort port, char *buf)
     if (rlim.rlim_cur < rlim.rlim_max)
         (void)setrlimit(RLIMIT_NOFILE, &rlim);
 
+    d->maxfd = rlim.rlim_max;
+    d->state = driver_alloc(rlim.rlim_max * sizeof(inert_state_t));
+    if (!d)
+        return ERL_DRV_ERROR_ERRNO;
+
     return (ErlDrvData)d;
 }
 
     static void
 inert_drv_stop(ErlDrvData drv_data)
 {
+    driver_free(((inert_drv_t *)drv_data)->state);
     driver_free(drv_data);
 }
 
@@ -96,7 +108,7 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
         | ((unsigned char)buf[6] << 8)
         | (unsigned char)buf[7];
 
-    if (event.fd < 0 || fcntl(event.fd, F_GETFD) < 0)
+    if (event.fd < 0 || event.fd >= d->maxfd || fcntl(event.fd, F_GETFD) < 0)
         return inert_copy(rbuf, &rlen, INERT_EBADFD, sizeof(INERT_EBADFD)-1);
 
     switch (command) {
@@ -117,6 +129,8 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
         default:
             return inert_copy(rbuf, &rlen, INERT_EINVAL, sizeof(INERT_EINVAL)-1);
     }
+
+    d->state[event.fd].caller = driver_caller(d->port);
 
     *rbuf = NULL;
     return driver_select(d->port, event.ev, mode, on);
@@ -161,7 +175,12 @@ inert_drv_ready(ErlDrvData drv_data, ErlDrvEvent event, int mode)
         ERL_DRV_TUPLE, 3
         };
 
-    (void)erl_drv_output_term(driver_mk_port(d->port), res, sizeof(res) / sizeof(res[0]));
+    (void)erl_drv_send_term(
+            driver_mk_port(d->port),
+            d->state[fd].caller,
+            res,
+            sizeof(res) / sizeof(res[0])
+            );
 }
 
     static ErlDrvSSizeT

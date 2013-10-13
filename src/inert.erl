@@ -12,145 +12,67 @@
 %%% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 %%% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 -module(inert).
--behaviour(gen_server).
 
 %% API
 -export([start/0, start/1, stop/1]).
--export([start_link/1]).
 -export([
         fdset/2, fdset/3,
         fdclr/2, fdclr/3,
         poll/2, poll/3
     ]).
 
-%% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
-
--record(state, {
-        port,
-        fds = dict:new()
-    }).
-
--record(inert_event, {
-        pid,
-        mode = read
-    }).
-
 start() ->
-    start_link([]).
+    start([]).
 start(Options) when is_list(Options) ->
-    start_link(Options).
-
-start_link(Options) ->
-    gen_server:start_link(?MODULE, [Options], []).
-
-stop(Ref) ->
-    gen_server:call(Ref, stop).
-
-fdset(Ref, FD) ->
-    fdset(Ref, FD, []).
-fdset(Ref, FD, Options) ->
-    gen_server:call(Ref, {fdset, FD, Options}).
-
-fdclr(Ref, FD) ->
-    fdclr(Ref, FD, []).
-fdclr(Ref, FD, Options) ->
-    gen_server:call(Ref, {fdclr, FD, Options}).
-
-poll(Ref, FD) ->
-    poll(Ref, FD, []).
-
-poll(Ref, FD, Options) ->
-    Timeout = proplists:get_value(timeout, Options, infinity),
-    case fdset(Ref, FD, Options) of
+    case inert_drv:start() of
         ok ->
-            poll_1(Ref, FD, Timeout);
+            Port = open_port({spawn_driver, inert_drv}, [stream]),
+            {ok, Port};
+        Error ->
+            {error, Error}
+    end.
+
+stop(Port) ->
+    catch erlang:port_close(Port),
+    inert_drv:stop().
+
+fdset(Port, FD) ->
+    fdset(Port, FD, []).
+fdset(Port, FD, Options) ->
+    Mode = proplists:get_value(mode, Options, read),
+    Event = inert_drv:encode({FD, Mode}),
+    inert_drv:send(Port, fdset, Event).
+
+fdclr(Port, FD) ->
+    fdclr(Port, FD, []).
+fdclr(Port, FD, Options) ->
+    Mode = proplists:get_value(mode, Options, read_write),
+    Event = inert_drv:encode({FD, Mode}),
+    inert_drv:send(Port, fdclr, Event).
+
+poll(Port, FD) ->
+    poll(Port, FD, []).
+
+poll(Port, FD, Options) ->
+    Timeout = proplists:get_value(timeout, Options, infinity),
+    case fdset(Port, FD, Options) of
+        ok ->
+            poll_1(Port, FD, Timeout);
         Error ->
             Error
     end.
 
-poll_1(Ref, FD, Timeout) when is_atom(Ref) ->
-    poll_1(whereis(Ref), FD, Timeout);
-poll_1(Ref, FD, Timeout) when is_pid(Ref) ->
+poll_1(Port, FD, Timeout) when is_port(Port) ->
     receive
-        {inert_read, Ref, FD} ->
+        {inert_read, Port, FD} ->
             ok;
-        {inert_write, Ref, FD} ->
+        {inert_write, Port, FD} ->
             ok
     after
         Timeout ->
-            inert:fdclr(Ref, FD),
+            inert:fdclr(Port, FD),
             timeout
     end.
-
-
-%%--------------------------------------------------------------------
-%%% gen_server callbacks
-%%--------------------------------------------------------------------
-init([_Options]) ->
-    process_flag(trap_exit, true),
-    ok = inert_drv:start(),
-    Port = open_port({spawn_driver, inert_drv}, [stream]),
-    {ok, #state{
-            port = Port
-        }}.
-
-handle_call({fdset, FD, Options}, {Pid,_}, #state{port = Port, fds = FDS} = State) ->
-    Mode = proplists:get_value(mode, Options, read),
-    Event = inert_drv:encode({FD, Mode}),
-    Reply = inert_drv:send(Port, fdset, Event),
-    FDS1 = case Reply of
-        ok ->
-            dict:store(FD, #inert_event{
-                    pid = Pid,
-                    mode = Mode
-                }, FDS);
-        _Error ->
-            FDS
-    end,
-    {reply, Reply, State#state{fds = FDS1}};
-
-handle_call({fdclr, FD, Options}, _From, #state{port = Port, fds = FDS} = State) ->
-    Mode = proplists:get_value(mode, Options, read_write),
-    Event = inert_drv:encode({FD, Mode}),
-    Reply = inert_drv:send(Port, fdclr, Event),
-    FDS1 = dict:erase(FD, FDS),
-    {reply, Reply, State#state{fds = FDS1}};
-
-handle_call(stop, _From, State) ->
-    {stop, normal, ok, State}.
-
-handle_cast(_Msg, State) ->
-    {noreply, State}.
-
-terminate(_Reason, #state{port = Port}) ->
-    catch erlang:port_close(Port),
-    ok.
-
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
-
-%%--------------------------------------------------------------------
-%%% Port communication
-%%--------------------------------------------------------------------
-handle_info({Mode, Port, FD}, #state{port = Port, fds = FDS} = State) ->
-    case dict:find(FD, FDS) of
-        {ok, #inert_event{pid = Pid}} ->
-            Pid ! {Mode, self(), FD};
-        error ->
-            ok
-    end,
-    {noreply, State};
-
-handle_info({'EXIT', Port, Reason}, #state{port = Port} = State) ->
-    {stop, {shutdown, Reason}, State};
-
-% WTF
-handle_info(Info, State) ->
-    error_logger:error_report([{wtf, Info}]),
-    {noreply, State}.
-
 
 %%--------------------------------------------------------------------
 %%% Internal functions

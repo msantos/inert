@@ -37,16 +37,16 @@ crashing the emulator.
 
 ## inert
 
-    start() -> {ok, Ref} | posix()
+    start() -> {ok, Ref} | {error, posix()}
 
-        Types   Ref = pid()
+        Types   Ref = port()
 
         Start the inert service.
 
     poll(Ref, FD) -> ok | {error, posix()}
     poll(Ref, FD, Options) -> ok | timeout | {error, posix()}
 
-        Types   Ref = pid()
+        Types   Ref = port()
                 FD = int32()
                 Options = [ {timeout, Timeout} | {mode, Mode} ]
                 Timeout = infinity | uint()
@@ -62,7 +62,7 @@ crashing the emulator.
     fdset(Ref, FD) -> ok | {error, posix()}
     fdset(Ref, FD, Options) -> ok | {error, posix()}
 
-        Types   Ref = pid()
+        Types   Ref = port()
                 FD = int32()
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
@@ -90,7 +90,7 @@ crashing the emulator.
     fdclr(Ref, FD) -> ok | {error, posix()}
     fdclr(Ref, FD, Options) -> ok | {error, posix()}
 
-        Types   Ref = pid()
+        Types   Ref = port()
                 FD = int32()
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write

@@ -56,15 +56,16 @@ poll(Port, FD) ->
     poll(Port, FD, []).
 
 poll(Port, FD, Options) ->
-    Timeout = proplists:get_value(timeout, Options, infinity),
     case fdset(Port, FD, Options) of
         ok ->
-            poll_1(Port, FD, Timeout);
+            poll_1(Port, FD, Options);
         Error ->
             Error
     end.
 
-poll_1(Port, FD, Timeout) when is_port(Port) ->
+poll_1(Port, FD, Options) when is_port(Port) ->
+    Mode = proplists:get_value(mode, Options, read),
+    Timeout = proplists:get_value(timeout, Options, infinity),
     receive
         {inert_read, Port, FD} ->
             ok;
@@ -72,7 +73,7 @@ poll_1(Port, FD, Timeout) when is_port(Port) ->
             ok
     after
         Timeout ->
-            inert:fdclr(Port, FD),
+            inert:fdclr(Port, FD, [{mode, Mode}]),
             timeout
     end.
 

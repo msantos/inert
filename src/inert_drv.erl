@@ -17,9 +17,6 @@
         stop/0,
 
         encode/1,
-        decode/1,
-
-        mode/1,
 
         send/3
     ]).
@@ -60,15 +57,6 @@ encode({FD, write}) ->
 encode({FD, read_write}) ->
     [<<FD:4/big-signed-integer-unit:8,
         (?ERL_DRV_READ bor ?ERL_DRV_WRITE):4/big-signed-integer-unit:8>>].
-
-decode([F1,F2,F3,F4, M1,M2,M3,M4]) ->
-    {(F1 bsl 24) bor (F2 bsl 16) bor (F3 bsl 8) bor F4,
-        (M1 bsl 24) bor (M2 bsl 16) bor (M3 bsl 8) bor M4};
-decode(<<F:4/big-signed-integer-unit:8, M:4/big-signed-integer-unit:8>>) ->
-    {F,M}.
-
-mode(?ERL_DRV_READ) -> read;
-mode(?ERL_DRV_WRITE) -> write.
 
 priv_dir() ->
     case code:priv_dir(?MODULE) of

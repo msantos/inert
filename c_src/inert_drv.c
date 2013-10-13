@@ -139,21 +139,29 @@ inert_drv_ready(ErlDrvData drv_data, ErlDrvEvent event, int mode)
 {
     inert_drv_t *d = (inert_drv_t *)drv_data;
     int32_t fd = ((inert_fd_t)event).fd;
-    char res[8] = {0};
+    char *tag = NULL;
 
     (void)driver_select(d->port, event, mode, 0);
 
-    res[0] = fd >> 24;
-    res[1] = (fd >> 16) & 0xff;
-    res[2] = (fd >> 8) & 0xff;
-    res[3] = fd & 0xff;
+    switch (mode) {
+        case ERL_DRV_READ:
+            tag = "inert_read";
+            break;
+        case ERL_DRV_WRITE:
+            tag = "inert_write";
+            break;
+        default:
+            tag = "inert_error";
+    }
 
-    res[4] = mode >> 24;
-    res[5] = (mode >> 16) & 0xff;
-    res[6] = (mode >> 8) & 0xff;
-    res[7] = mode & 0xff;
+    ErlDrvTermData res[] = {
+        ERL_DRV_ATOM, driver_mk_atom(tag),
+        ERL_DRV_PORT, driver_mk_port(d->port),
+        ERL_DRV_INT, fd,
+        ERL_DRV_TUPLE, 3
+        };
 
-    (void)driver_output(d->port, res, sizeof(res));
+    (void)erl_drv_output_term(driver_mk_port(d->port), res, sizeof(res) / sizeof(res[0]));
 }
 
     static ErlDrvSSizeT

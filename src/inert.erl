@@ -134,11 +134,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Port communication
 %%--------------------------------------------------------------------
-handle_info({Port, {data, Data}}, #state{port = Port, fds = FDS} = State) ->
-    {FD, Mode} = inert_drv:decode(Data),
+handle_info({Mode, Port, FD}, #state{port = Port, fds = FDS} = State) ->
     case dict:find(FD, FDS) of
         {ok, #inert_event{pid = Pid}} ->
-            Pid ! {mode(Mode), self(), FD};
+            Pid ! {Mode, self(), FD};
         error ->
             ok
     end,
@@ -156,6 +155,3 @@ handle_info(Info, State) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
-mode(N) when is_integer(N) -> mode(inert_drv:mode(N));
-mode(read) -> inert_read;
-mode(write) -> inert_write.

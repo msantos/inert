@@ -18,7 +18,9 @@
 -export([
         fdset/2, fdset/3,
         fdclr/2, fdclr/3,
-        poll/2, poll/3
+        poll/2, poll/3,
+
+        controlling_process/2
     ]).
 
 start() ->
@@ -72,6 +74,17 @@ poll_1(Port, FD, Timeout) when is_port(Port) ->
         Timeout ->
             inert:fdclr(Port, FD),
             timeout
+    end.
+
+controlling_process(Port, Pid) when is_port(Port), is_pid(Pid) ->
+    true = erlang:port_connect(Port, Pid),
+    unlink(Port),
+    receive
+        {'EXIT', Port, _} ->
+            ok
+    after
+        0 ->
+            ok
     end.
 
 %%--------------------------------------------------------------------

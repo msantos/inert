@@ -67,15 +67,12 @@ inert_drv_start(ErlDrvPort port, char *buf)
     if (getrlimit(RLIMIT_NOFILE, &rlim) < 0)
         return ERL_DRV_ERROR_ERRNO;
 
-    if (rlim.rlim_cur < rlim.rlim_max)
-        (void)setrlimit(RLIMIT_NOFILE, &rlim);
-
-    d->maxfd = rlim.rlim_max;
-    d->state = driver_alloc(rlim.rlim_max * sizeof(inert_state_t));
+    d->maxfd = rlim.rlim_cur;
+    d->state = driver_alloc(rlim.rlim_cur * sizeof(inert_state_t));
     if (!d)
         return ERL_DRV_ERROR_ERRNO;
 
-    (void)memset(d->state, 0, rlim.rlim_max * sizeof(inert_state_t));
+    (void)memset(d->state, 0, rlim.rlim_cur * sizeof(inert_state_t));
 
     return (ErlDrvData)d;
 }

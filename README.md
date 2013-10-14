@@ -11,17 +11,15 @@ _WARNING:_ this library is under development
 
 # OVERVIEW
 
-inert sends a message whenever an event occurs on a non-blocking file
-descriptor.  You'll need another library to open the fd's (see _ADDITIONAL
-LIBRARIES_). For example, using inet:
+inert sends your process a message whenever an event occurs on a
+non-blocking file descriptor.  You'll need another library to open the
+fd's (see _ADDITIONAL LIBRARIES_). For example, using inet:
 
     {ok, Socket} = gen_tcp:listen(1234, [binary, {active,false}]),
     {ok, FD} = inet:getfd(Socket).
 
-Be careful when using file descriptors opened by inet. Both inet and
-inert use the same mechanism for polling, so stealing fd's may result
-in unexpected behaviour like generating storms of error messages or
-crashing the emulator.
+Both inet and inert use erts for polling, so stealing fd's may generate
+error reports.
 
 # ADDITIONAL LIBRARIES
 

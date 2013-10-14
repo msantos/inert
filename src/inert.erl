@@ -78,14 +78,29 @@ poll_1(Port, FD, Options) when is_port(Port) ->
     end.
 
 controlling_process(Port, Pid) when is_port(Port), is_pid(Pid) ->
-    true = erlang:port_connect(Port, Pid),
-    unlink(Port),
-    receive
-        {'EXIT', Port, _} ->
-            ok
-    after
-        0 ->
-            ok
+    Owner = self(),
+    case erlang:port_info(Port, connected) of
+        {connected, Pid} ->
+            ok;
+        {connected, Owner} ->
+            try erlang:port_connect(Port, Pid) of
+                true ->
+                    unlink(Port),
+                    receive
+                        {'EXIT', Port, _} ->
+                            ok
+                    after
+                        0 ->
+                            ok
+                    end
+            catch
+                error:Error ->
+                    {error, Error}
+            end;
+        {connected, _} ->
+            {error, not_owner};
+        _ ->
+            {error, einval}
     end.
 
 %%--------------------------------------------------------------------

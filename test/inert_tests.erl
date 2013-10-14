@@ -26,6 +26,7 @@ inert_test_() ->
         {?LINE, fun() -> inert_stream(Ref) end},
         {?LINE, fun() -> inert_poll_timeout(Ref) end},
         {?LINE, fun() -> inert_stateless_fdset(Ref) end},
+        {?LINE, fun() -> inert_controlling_process(Ref) end},
         {?LINE, fun() -> inert_error_closed() end}
     ]}.
 
@@ -164,6 +165,26 @@ inert_stateless_fdset(Ref) ->
         {inert_read, _, FD} ->
             ok
     end.
+
+% Pass port ownership through a ring of processes
+inert_controlling_process(Ref) ->
+    {ok, Socket} = gen_udp:open(0, [binary, {active,false}]),
+    {ok, FD} = inet:getfd(Socket),
+    Pid = self(),
+    inert_controlling_process(Ref, Pid, FD, 0),
+    receive
+        inert_controlling_process ->
+            ok = inert:poll(Ref, FD, [{mode, write}]),
+            gen_udp:close(Socket)
+    end.
+
+inert_controlling_process(Ref, Parent, _FD, 3) ->
+    ok = inert:controlling_process(Ref, Parent),
+    Parent ! inert_controlling_process;
+inert_controlling_process(Ref, Parent, FD, N) ->
+    ok = inert:poll(Ref, FD, [{mode, write}]),
+    Pid1 = spawn(fun() -> inert_controlling_process(Ref, Parent, FD, N+1) end),
+    ok = inert:controlling_process(Ref, Pid1).
 
 % Catch the badarg if the port has been closed
 inert_error_closed() ->

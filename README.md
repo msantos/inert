@@ -98,6 +98,20 @@ error reports.
 
         Clear an event set for a file descriptor.
 
+    controlling_process(Ref, PID) -> ok | {error, Error}
+
+        Types   Ref = port()
+                PID = pid()
+                Error = not_owner | einval
+
+        Transfer ownership of the inert port driver from the current
+        process to another process.
+
+        Since any process can use the port, controlling_process/2
+        just sets the port owner and links the process to the port. The
+        original owner will receive messages for any file descriptors
+        it has added to the pollset.
+
 ## inert\_drv
 
 inert\_drv is a wrapper around the driver\_select() function in the

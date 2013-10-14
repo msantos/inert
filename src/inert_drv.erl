@@ -29,14 +29,14 @@
 -define(ERL_DRV_USE, (1 bsl 2)).
 
 start() ->
-    case erl_ddll:load_driver(priv_dir(), ?MODULE) of
+    case erl_ddll:load(priv_dir(), ?MODULE) of
         ok -> ok;
         {error, already_loaded} -> ok;
         {error, Error} -> exit({error, erl_ddll:format_error(Error)})
     end.
 
 stop() ->
-    erl_ddll:unload_driver(?MODULE).
+    erl_ddll:unload(?MODULE).
 
 send(Port, Op, Data) when is_atom(Op) ->
     send(Port, command(Op), Data);

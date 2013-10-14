@@ -35,6 +35,7 @@
 typedef struct {
     ErlDrvTermData caller;
     u_int8_t monitored;
+    int mode;
 } inert_state_t;
 
 typedef struct {
@@ -90,7 +91,7 @@ inert_drv_stop(ErlDrvData drv_data)
         if (d->state[fd].monitored) {
             inert_fd_t event = {0};
             event.fd = fd;
-            driver_select(d->port, event.ev, ERL_DRV_READ|ERL_DRV_WRITE, 0);
+            driver_select(d->port, event.ev, d->state[fd].mode, 0);
         }
     }
 
@@ -136,16 +137,23 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
              */
             if (driver_select(d->port, event.ev, ERL_DRV_READ|ERL_DRV_WRITE, 0) < 0)
                 return -1;
+
+            d->state[event.fd].mode = mode;
+            d->state[event.fd].caller = driver_caller(d->port);
+            d->state[event.fd].monitored = 1;
+
             break;
         case INERT_FDCLR:
             on = 0;
+            d->state[event.fd].mode &= ~mode;
+
+            if (!(mode & (ERL_DRV_READ|ERL_DRV_WRITE)))
+                d->state[event.fd].monitored = 0;
+
             break;
         default:
             return inert_copy(rbuf, &rlen, INERT_EINVAL, sizeof(INERT_EINVAL)-1);
     }
-
-    d->state[event.fd].caller = driver_caller(d->port);
-    d->state[event.fd].monitored = 1;
 
     *rbuf = NULL;
     return driver_select(d->port, event.ev, mode, on);
@@ -172,6 +180,7 @@ inert_drv_ready(ErlDrvData drv_data, ErlDrvEvent event, int mode)
 
     (void)driver_select(d->port, event, mode, 0);
     d->state[fd].monitored = 0;
+    d->state[fd].mode &= ~mode;
 
     switch (mode) {
         case ERL_DRV_READ:

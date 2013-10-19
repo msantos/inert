@@ -87,7 +87,7 @@ inert_drv_stop(ErlDrvData drv_data)
         if (d->state[fd].mode & (ERL_DRV_READ|ERL_DRV_WRITE)) {
             inert_fd_t event = {0};
             event.fd = fd;
-            driver_select(d->port, event.ev, d->state[fd].mode, 0);
+            (void)driver_select(d->port, event.ev, d->state[fd].mode, 0);
         }
     }
 

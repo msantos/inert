@@ -69,10 +69,7 @@ inert_badfd(Ref) ->
     {error, ebadfd} = inert:fdset(Ref, 10000).
 
 inert_stream(Ref) ->
-    N = case os:getenv("INERT_TEST_STREAM_RUNS") of
-        false -> 10;
-        Var -> list_to_integer(Var)
-    end,
+    N = getenv("INERT_TEST_STREAM_RUNS", 10),
 
     {ok, Socket} = gen_tcp:listen(0, [binary,{active,false}]),
     {ok, Port} = inet:port(Socket),
@@ -110,7 +107,7 @@ read(Ref, Pid, FD, N) ->
                     {fd, FD},
                     {read_bytes, N}
                 ]),
-            N = stream_num_bytes(),
+            N = getenv("INERT_TEST_STREAM_NUM_BYTES", 1024),
             Pid ! {fd_close, FD};
         {ok, Buf} ->
             read(Ref, Pid, FD, N + byte_size(Buf));
@@ -123,16 +120,11 @@ read(Ref, Pid, FD, N) ->
 
 connect(Port, N) ->
     {ok, C} = gen_tcp:connect("localhost", Port, []),
-    Bin = crypto:rand_bytes(stream_num_bytes()),
+    Num = getenv("INERT_TEST_STREAM_NUM_BYTES", 1024),
+    Bin = crypto:rand_bytes(Num),
     ok = gen_tcp:send(C, Bin),
     ok = gen_tcp:close(C),
     connect(Port, N-1).
-
-stream_num_bytes() ->
-    case os:getenv("INERT_TEST_STREAM_NUM_BYTES") of
-        false -> 1024;
-        Var -> list_to_integer(Var)
-    end.
 
 inert_poll_timeout(Ref) ->
     {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),
@@ -191,3 +183,9 @@ inert_error_closed() ->
     {ok, Port} = inert:start(),
     ok = inert:stop(Port),
     {error, closed} = inert:poll(Port, 1).
+
+getenv(Var, Default) when is_list(Var), is_integer(Default) ->
+    case os:getenv(Var) of
+        false -> Default;
+        N -> list_to_integer(N)
+    end.

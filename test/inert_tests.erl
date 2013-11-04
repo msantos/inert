@@ -18,17 +18,38 @@
 -include_lib("eunit/include/eunit.hrl").
 
 inert_test_() ->
-    {ok, Ref} = inert:start(),
+    {setup,
+        fun start/0,
+        fun stop/1,
+        fun run/1
+    }.
 
-    {timeout, 480, [
-        {?LINE, fun() -> inert_select(Ref) end},
-        {?LINE, fun() -> inert_badfd(Ref) end},
-        {?LINE, fun() -> inert_stream(Ref) end},
-        {?LINE, fun() -> inert_poll_timeout(Ref) end},
-        {?LINE, fun() -> inert_stateless_fdset(Ref) end},
-        {?LINE, fun() -> inert_controlling_process(Ref) end},
-        {?LINE, fun() -> inert_error_closed() end}
-    ]}.
+run(Ref) ->
+    [
+        inert_badfd(Ref),
+        inert_select(Ref),
+        inert_stream(Ref),
+        inert_poll_timeout(Ref),
+        inert_stateless_fdset(Ref),
+        inert_controlling_process(Ref),
+        inert_error_closed()
+    ].
+
+start() ->
+    {ok, Ref} = inert:start(),
+    Ref.
+
+stop(Ref) ->
+    inert:stop(Ref).
+
+inert_badfd(Ref) ->
+    [
+        ?_assertEqual({error, ebadfd}, inert:fdset(Ref, -1)),
+        ?_assertEqual({error, ebadfd}, inert:poll(Ref, -1)),
+        ?_assertEqual({error, ebadfd}, inert:fdset(Ref, 127)),
+        ?_assertEqual({error, ebadfd}, inert:fdset(Ref, 128)),
+        ?_assertEqual({error, ebadfd}, inert:fdset(Ref, 10000))
+    ].
 
 inert_select(Ref) ->
     {ok, Sock1} = gen_tcp:listen(0, [binary,{active,false}]),
@@ -49,24 +70,17 @@ inert_select(Ref) ->
     gen_tcp:close(C1),
     gen_tcp:close(C2),
 
-    receive
+    Result = receive
         {inert_read, _, FD1} ->
-            error_logger:info_report([{fd, FD1}]),
+%            error_logger:info_report([{fd, FD1}]),
             inert:fdclr(Ref, FD1),
             receive
                 {inert_read, _, FD2} ->
-                    error_logger:info_report([{fd, FD2}]),
-                    inert:fdclr(Ref, FD2),
-                    ok
+%                    error_logger:info_report([{fd, FD2}]),
+                    inert:fdclr(Ref, FD2)
             end
-    end.
-
-inert_badfd(Ref) ->
-    {error, ebadfd} = inert:fdset(Ref, -1),
-    {error, ebadfd} = inert:poll(Ref, -1),
-    {error, ebadfd} = inert:fdset(Ref, 127),
-    {error, ebadfd} = inert:fdset(Ref, 128),
-    {error, ebadfd} = inert:fdset(Ref, 10000).
+    end,
+    ?_assertEqual(ok, Result).
 
 inert_stream(Ref) ->
     N = getenv("INERT_TEST_STREAM_RUNS", 10),
@@ -89,7 +103,7 @@ accept(Ref, S, X, N) ->
     accept(Ref, S, X, N-1).
 
 wait(S, 0) ->
-    gen_tcp:close(S);
+    ?_assertEqual(ok, gen_tcp:close(S));
 wait(S, N) ->
     receive
         {fd_close, _FD} ->
@@ -103,10 +117,10 @@ read(Ref, Pid, FD, N) ->
     case procket:read(FD, 1) of
         {ok, <<>>} ->
             procket:close(FD),
-            error_logger:info_report([
-                    {fd, FD},
-                    {read_bytes, N}
-                ]),
+%            error_logger:info_report([
+%                    {fd, FD},
+%                    {read_bytes, N}
+%                ]),
             N = getenv("INERT_TEST_STREAM_NUM_BYTES", 1024),
             Pid ! {fd_close, FD};
         {ok, Buf} ->
@@ -129,7 +143,7 @@ connect(Port, N) ->
 inert_poll_timeout(Ref) ->
     {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),
     {ok, FD} = inet:getfd(Socket),
-    timeout = inert:poll(Ref, FD, [{timeout, 10}]).
+    ?_assertEqual(timeout, inert:poll(Ref, FD, [{timeout, 10}])).
 
 % Test successive calls to fdset overwrite the previous mode
 inert_stateless_fdset(Ref) ->
@@ -144,8 +158,8 @@ inert_stateless_fdset(Ref) ->
     ok = gen_tcp:close(Conn),
 
     ok = receive
-        {inert_read, _, FD} = N ->
-            N
+        {inert_read, _, FD} = Fail ->
+            Fail
     after
         0 ->
             ok
@@ -153,10 +167,11 @@ inert_stateless_fdset(Ref) ->
 
     ok = inert:fdset(Ref, FD, [{mode, read}]),
 
-    receive
-        {inert_read, _, FD} ->
-            ok
-    end.
+    Result = receive
+        {inert_read, _, FD} = N ->
+            N
+    end,
+    ?_assertMatch({inert_read, _, FD}, Result).
 
 % Pass port ownership through a ring of processes
 inert_controlling_process(Ref) ->
@@ -164,11 +179,13 @@ inert_controlling_process(Ref) ->
     {ok, FD} = inet:getfd(Socket),
     Pid = self(),
     inert_controlling_process(Ref, Pid, FD, 0),
-    receive
+    Result = receive
         inert_controlling_process ->
-            ok = inert:poll(Ref, FD, [{mode, write}]),
-            gen_udp:close(Socket)
-    end.
+            N = inert:poll(Ref, FD, [{mode, write}]),
+            gen_udp:close(Socket),
+            N
+    end,
+    ?_assertEqual(ok, Result).
 
 inert_controlling_process(Ref, Parent, _FD, 3) ->
     ok = inert:controlling_process(Ref, Parent),
@@ -182,7 +199,7 @@ inert_controlling_process(Ref, Parent, FD, N) ->
 inert_error_closed() ->
     {ok, Port} = inert:start(),
     ok = inert:stop(Port),
-    {error, closed} = inert:poll(Port, 1).
+    ?_assertEqual({error, closed}, inert:poll(Port, 1)).
 
 getenv(Var, Default) when is_list(Var), is_integer(Default) ->
     case os:getenv(Var) of

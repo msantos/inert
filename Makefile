@@ -18,8 +18,10 @@ deps: $(REBAR)
 	@$(REBAR) get-deps
 
 test: compile
-	@$(REBAR) eunit
+	@$(REBAR) xref eunit recursive=false
 
 examples: eg
 eg:
 	@erlc -I deps -o ebin examples/*.erl
+
+.PHONY: test

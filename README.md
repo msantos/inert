@@ -31,6 +31,10 @@ error reports.
 
     https://github.com/msantos/srly
 
+* TUN/TAP devices
+
+    https://github.com/msantos/tunctl
+
 # EXPORTS
 
 ## inert
@@ -108,10 +112,10 @@ error reports.
         Transfer ownership of the inert port driver from the current
         process to another process.
 
-        Since any process can use the port, controlling_process/2
-        just sets the port owner and links the process to the port. The
-        original owner will receive messages for any file descriptors
-        it has added to the pollset.
+        Since any process can use the port, controlling_process/2 just
+        sets the port owner and links the process to the port. The
+        original owner will continue to receive messages for any file
+        descriptors it has added to the pollset.
 
 ## inert\_drv
 

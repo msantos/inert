@@ -143,7 +143,7 @@ connect(Port, N) ->
 inert_poll_timeout(Ref) ->
     {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),
     {ok, FD} = inet:getfd(Socket),
-    ?_assertEqual(timeout, inert:poll(Ref, FD, [{timeout, 10}])).
+    ?_assertEqual({error, timeout}, inert:poll(Ref, FD, [{timeout, 10}])).
 
 % Test successive calls to fdset overwrite the previous mode
 inert_stateless_fdset(Ref) ->

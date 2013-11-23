@@ -74,7 +74,7 @@ poll_1(Port, FD, Options) when is_port(Port) ->
     after
         Timeout ->
             inert:fdclr(Port, FD, [{mode, Mode}]),
-            timeout
+            {error, timeout}
     end.
 
 controlling_process(Port, Pid) when is_port(Port), is_pid(Pid) ->

@@ -42,21 +42,22 @@ error reports.
         Start the inert service.
 
     poll(Ref, FD) -> ok | {error, Error}
-    poll(Ref, FD, Options) -> ok | timeout | {error, Error}
+    poll(Ref, FD, Options) -> ok | {error, Error}
 
         Types   Ref = port()
                 FD = int32()
                 Options = [ {timeout, Timeout} | {mode, Mode} ]
                 Timeout = infinity | uint()
                 Mode = read | write | read_write
-                Error = closed | posix()
+                Error = closed | timeout | posix()
 
         poll/2,3 blocks until a file descriptor is ready for reading
         or writing (default mode: read).
 
         poll will block forever unless the timeout option is used.
         With the timeout option, poll will be interrupted after the
-        specified timeout (in milliseconds) and return the atom 'timeout'.
+        specified timeout (in milliseconds) and return the tuple {error,
+        timeout}.
 
     fdset(Ref, FD) -> ok | {error, Error}
     fdset(Ref, FD, Options) -> ok | {error, Error}

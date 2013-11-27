@@ -43,14 +43,14 @@ fdset(Port, FD) ->
 fdset(Port, FD, Options) ->
     Mode = proplists:get_value(mode, Options, read),
     Event = inert_drv:encode({FD, Mode}),
-    inert_drv:send(Port, fdset, Event).
+    inert_drv:ctl(Port, fdset, Event).
 
 fdclr(Port, FD) ->
     fdclr(Port, FD, []).
 fdclr(Port, FD, Options) ->
     Mode = proplists:get_value(mode, Options, read_write),
     Event = inert_drv:encode({FD, Mode}),
-    inert_drv:send(Port, fdclr, Event).
+    inert_drv:ctl(Port, fdclr, Event).
 
 poll(Port, FD) ->
     poll(Port, FD, []).

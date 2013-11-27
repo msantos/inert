@@ -18,7 +18,7 @@
 
         encode/1,
 
-        send/3
+        ctl/3
     ]).
 
 -define(INERT_FDSET, 1).
@@ -38,9 +38,9 @@ start() ->
 stop() ->
     erl_ddll:unload(?MODULE).
 
-send(Port, Op, Data) when is_atom(Op) ->
-    send(Port, command(Op), Data);
-send(Port, Op, Data) ->
+ctl(Port, Op, Data) when is_atom(Op) ->
+    ctl(Port, command(Op), Data);
+ctl(Port, Op, Data) ->
     try erlang:port_control(Port, Op, Data) of
         [] -> ok;
         Error -> {error, list_to_atom(Error)}

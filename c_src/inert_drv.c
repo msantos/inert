@@ -26,9 +26,6 @@
 #include "erl_driver.h"
 #include "ei.h"
 
-#define INERT_EBADFD    "ebadfd"
-#define INERT_EINVAL    "einval"
-
 #define INERT_FDSET     1
 #define INERT_FDCLR     2
 
@@ -49,6 +46,7 @@ typedef union {
 } inert_fd_t;
 
 static void inert_drv_ready(ErlDrvData, ErlDrvEvent, int);
+static ErlDrvSSizeT inert_errno(char **, ErlDrvSizeT *, int);
 static ErlDrvSSizeT inert_copy(char **, ErlDrvSizeT *, char *, size_t);
 
     static ErlDrvData
@@ -120,7 +118,7 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
         | (unsigned char)buf[7];
 
     if (event.fd < 0 || event.fd >= d->maxfd || fcntl(event.fd, F_GETFD) < 0)
-        return inert_copy(rbuf, &rlen, INERT_EBADFD, sizeof(INERT_EBADFD)-1);
+        return inert_errno(rbuf, &rlen, EBADFD);
 
     switch (command) {
         case INERT_FDSET:
@@ -143,7 +141,7 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
             d->state[event.fd].mode &= ~mode;
             break;
         default:
-            return inert_copy(rbuf, &rlen, INERT_EINVAL, sizeof(INERT_EINVAL)-1);
+            return inert_errno(rbuf, &rlen, EINVAL);
     }
 
     *rbuf = NULL;
@@ -196,6 +194,16 @@ inert_drv_ready(ErlDrvData drv_data, ErlDrvEvent event, int mode)
             res,
             sizeof(res) / sizeof(res[0])
             );
+}
+
+    static ErlDrvSSizeT
+inert_errno(char **rbuf, ErlDrvSizeT *rlen, int errnum)
+{
+    char *errstr = NULL;
+
+    errstr = erl_errno_id(errnum);
+
+    return inert_copy(rbuf, rlen, errstr, strlen(errstr));
 }
 
     static ErlDrvSSizeT

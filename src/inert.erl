@@ -28,7 +28,7 @@ start() ->
 start(Options) when is_list(Options) ->
     case inert_drv:start() of
         ok ->
-            Port = open_port({spawn_driver, inert_drv}, [stream]),
+            Port = open_port({spawn_driver, "inert_drv"}, [stream]),
             {ok, Port};
         Error ->
             {error, Error}

@@ -26,13 +26,9 @@
 start() ->
     start([]).
 start(Options) when is_list(Options) ->
-    case inert_drv:start() of
-        ok ->
-            Port = open_port({spawn_driver, "inert_drv"}, [stream]),
-            {ok, Port};
-        Error ->
-            {error, Error}
-    end.
+    ok = inert_drv:start(),
+    Port = open_port({spawn_driver, "inert_drv"}, [stream]),
+    {ok, Port}.
 
 stop(Port) ->
     catch erlang:port_close(Port),

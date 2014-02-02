@@ -79,19 +79,14 @@ controlling_process(Port, Pid) when is_port(Port), is_pid(Pid) ->
         {connected, Pid} ->
             ok;
         {connected, Owner} ->
-            try erlang:port_connect(Port, Pid) of
-                true ->
-                    unlink(Port),
-                    receive
-                        {'EXIT', Port, _} ->
-                            ok
-                    after
-                        0 ->
-                            ok
-                    end
-            catch
-                error:Error ->
-                    {error, Error}
+            erlang:port_connect(Port, Pid),
+            unlink(Port),
+            receive
+                {'EXIT', Port, _} ->
+                    ok
+            after
+                0 ->
+                    ok
             end;
         {connected, _} ->
             {error, not_owner};

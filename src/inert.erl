@@ -14,7 +14,7 @@
 -module(inert).
 
 %% API
--export([start/0, start/1, stop/1]).
+-export([start/0, stop/1]).
 -export([
         fdset/2, fdset/3,
         fdclr/2, fdclr/3,
@@ -24,11 +24,8 @@
     ]).
 
 start() ->
-    start([]).
-start(Options) when is_list(Options) ->
     ok = inert_drv:start(),
-    Port = open_port({spawn_driver, "inert_drv"}, [stream]),
-    {ok, Port}.
+    open_port({spawn_driver, "inert_drv"}, [stream]).
 
 stop(Port) ->
     catch erlang:port_close(Port),

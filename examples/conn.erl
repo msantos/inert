@@ -21,7 +21,7 @@
 -endif.
 
 ssh() ->
-    {ok, Ref} = inert:start(),
+    PollId = inert:start(),
     {ok, Socket} = procket:socket(inet, stream, 0),
     Sockaddr = <<(procket:sockaddr_common(?PF_INET, 16))/binary,
         22:16,          % Port
@@ -32,13 +32,13 @@ ssh() ->
         ok ->
             ok;
         {error, einprogress} ->
-            poll(Ref, Socket)
+            poll(PollId, Socket)
     end,
-    ok = inert:poll(Ref, Socket, [{mode,read}]),
+    ok = inert:poll(PollId, Socket, [{mode,read}]),
     procket:read(Socket, 16#ffff).
 
-poll(Ref, Socket) ->
-    ok = inert:poll(Ref, Socket, [{mode,write}]),
+poll(PollId, Socket) ->
+    ok = inert:poll(PollId, Socket, [{mode,write}]),
     case procket:getsockopt(Socket, ?SOL_SOCKET, ?SO_ERROR, <<>>) of
         {ok, _Buf} ->
             ok;

@@ -6,8 +6,8 @@ _WARNING:_ this library is under development
 # QUICK USAGE
 
     STDOUT = 1,
-    {ok, Ref} = inert:start(),
-    ok = inert:poll(Ref, STDOUT).
+    PollId = inert:start(),
+    ok = inert:poll(PollId, STDOUT).
 
 # OVERVIEW
 
@@ -39,16 +39,16 @@ error reports.
 
 ## inert
 
-    start() -> {ok, Ref} | {error, posix()}
+    start() -> PollId | {error, posix()}
 
-        Types   Ref = port()
+        Types   PollId = port()
 
         Start the inert service.
 
-    poll(Ref, FD) -> ok | {error, Error}
-    poll(Ref, FD, Options) -> ok | {error, Error}
+    poll(PollId, FD) -> ok | {error, Error}
+    poll(PollId, FD, Options) -> ok | {error, Error}
 
-        Types   Ref = port()
+        Types   PollId = port()
                 FD = int32()
                 Options = [ {timeout, Timeout} | {mode, Mode} ]
                 Timeout = infinity | uint()
@@ -63,10 +63,10 @@ error reports.
         specified timeout (in milliseconds) and return the tuple {error,
         timeout}.
 
-    fdset(Ref, FD) -> ok | {error, Error}
-    fdset(Ref, FD, Options) -> ok | {error, Error}
+    fdset(PollId, FD) -> ok | {error, Error}
+    fdset(PollId, FD, Options) -> ok | {error, Error}
 
-        Types   Ref = port()
+        Types   PollId = port()
                 FD = int32()
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
@@ -77,8 +77,8 @@ error reports.
         fdset/2,3 will send one message when a file descriptor is ready
         for reading or writing:
 
-            {inert_read, Ref, FD}   % fd is ready for reading
-            {inert_write, Ref, FD}  % fd is ready for writing
+            {inert_read, PollId, FD}   % fd is ready for reading
+            {inert_write, PollId, FD}  % fd is ready for writing
 
         When requesting a monitoring mode of read_write, the calling
         process may receive two messages (one for read, one for write).
@@ -88,14 +88,14 @@ error reports.
 
         Successive calls to fdset/2,3 reset the mode:
 
-            fdset(Ref, FD, [{mode, read_write}]),
-            fdset(Ref, FD, [{mode, write}]).
+            fdset(PollId, FD, [{mode, read_write}]),
+            fdset(PollId, FD, [{mode, write}]).
             % monitoring the fd for write events only
 
-    fdclr(Ref, FD) -> ok | {error, Error}
-    fdclr(Ref, FD, Options) -> ok | {error, Error}
+    fdclr(PollId, FD) -> ok | {error, Error}
+    fdclr(PollId, FD, Options) -> ok | {error, Error}
 
-        Types   Ref = port()
+        Types   PollId = port()
                 FD = int32()
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
@@ -103,9 +103,9 @@ error reports.
 
         Clear an event set for a file descriptor.
 
-    controlling_process(Ref, PID) -> ok | {error, Error}
+    controlling_process(PollId, PID) -> ok | {error, Error}
 
-        Types   Ref = port()
+        Types   PollId = port()
                 PID = pid()
                 Error = not_owner | einval
 
@@ -157,7 +157,7 @@ is the equivalent of:
 -endif.
 
 ssh() ->
-    {ok, Ref} = inert:start(),
+    PollId = inert:start(),
     {ok, Socket} = procket:socket(inet, stream, 0),
     Sockaddr = <<(procket:sockaddr_common(?PF_INET, 16))/binary,
             22:16,          % Port
@@ -168,13 +168,13 @@ ssh() ->
         ok ->
             ok;
         {error, einprogress} ->
-            poll(Ref, Socket)
+            poll(PollId, Socket)
     end,
-    ok = inert:poll(Ref, Socket, [{mode,read}]),
+    ok = inert:poll(PollId, Socket, [{mode,read}]),
     procket:read(Socket, 16#ffff).
 
-poll(Ref, Socket) ->
-    ok = inert:poll(Ref, Socket, [{mode,write}]),
+poll(PollId, Socket) ->
+    ok = inert:poll(PollId, Socket, [{mode,write}]),
     case procket:getsockopt(Socket, ?SOL_SOCKET, ?SO_ERROR, <<>>) of
         {ok, _Buf} ->
             ok;
@@ -216,7 +216,7 @@ https://github.com/erlang/otp/commit/169080db01101a4db6b1c265d04d972f3c39488a#di
 Works with any type of non-blocking file descriptor:
 
     FD = 7,
-    {ok, Port} = erlang:open_port({fd, FD, FD}, [stream,binary]).
+    Port = erlang:open_port({fd, FD, FD}, [stream,binary]).
 
 Ports do not have a built in way to do flow control (inet is a port but
 the flow control is done within the driver). Flow control can be done
@@ -226,12 +226,12 @@ been processed:
     % synchronous close of port, flushes buffers
     erlang:port_close(Port),
     % process data
-    {ok, Port1} = erlang:open_port({fd, FD, FD}, [stream,binary]).
+    Port1 = erlang:open_port({fd, FD, FD}, [stream,binary]).
 
     % async close
     Port1 ! {self(), close}
     % process data
-    {ok, Port2} = erlang:open_port({fd, FD, FD}, [stream,binary]).
+    Port2 = erlang:open_port({fd, FD, FD}, [stream,binary]).
 
 ## Busy waiting
 

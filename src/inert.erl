@@ -31,23 +31,31 @@ stop(Port) ->
     catch erlang:port_close(Port),
     inert_drv:stop().
 
+-spec fdset(port(), integer()) -> 'ok' | {'error',file:posix() | 'closed'}.
 fdset(Port, FD) ->
     fdset(Port, FD, []).
+
+-spec fdset(port(), integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed'}.
 fdset(Port, FD, Options) ->
     Mode = proplists:get_value(mode, Options, read),
     Event = inert_drv:encode({FD, Mode}),
     inert_drv:ctl(Port, fdset, Event).
 
+-spec fdclr(port(), integer()) -> 'ok' | {'error',file:posix() | 'closed'}.
 fdclr(Port, FD) ->
     fdclr(Port, FD, []).
+
+-spec fdclr(port(), integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed'}.
 fdclr(Port, FD, Options) ->
     Mode = proplists:get_value(mode, Options, read_write),
     Event = inert_drv:encode({FD, Mode}),
     inert_drv:ctl(Port, fdclr, Event).
 
+-spec poll(port(), integer()) -> 'ok' | {'error',file:posix() | 'closed' | 'timeout'}.
 poll(Port, FD) ->
     poll(Port, FD, []).
 
+-spec poll(port(), integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed' | 'timeout'}.
 poll(Port, FD, Options) ->
     case fdset(Port, FD, Options) of
         ok ->
@@ -70,6 +78,7 @@ poll_1(Port, FD, Options) when is_port(Port) ->
             {error, timeout}
     end.
 
+-spec controlling_process(port(), pid()) -> 'ok' | {'error', 'not_owner' | 'einval'}.
 controlling_process(Port, Pid) when is_port(Port), is_pid(Pid) ->
     Owner = self(),
     case erlang:port_info(Port, connected) of

@@ -21,6 +21,10 @@
         ctl/3
     ]).
 
+-export_type([command/0]).
+
+-type command() :: 'fdset' | 'fdclr'.
+
 -define(INERT_FDSET, 1).
 -define(INERT_FDCLR, 2).
 
@@ -38,6 +42,7 @@ start() ->
 stop() ->
     erl_ddll:unload(?MODULE).
 
+-spec ctl(port(), command() | non_neg_integer(), iodata()) -> 'ok' | {'error', file:posix() | 'closed'}.
 ctl(Port, Op, Data) when is_atom(Op) ->
     ctl(Port, command(Op), Data);
 ctl(Port, Op, Data) ->

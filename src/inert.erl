@@ -28,7 +28,7 @@ start() ->
     open_port({spawn_driver, "inert_drv"}, [stream]).
 
 stop(Port) ->
-    catch erlang:port_close(Port),
+    true = erlang:port_close(Port),
     inert_drv:stop().
 
 -spec fdset(port(), integer()) -> 'ok' | {'error',file:posix() | 'closed'}.

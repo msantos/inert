@@ -39,7 +39,7 @@ error reports.
 
 ## inert
 
-    start() -> PollId | {error, posix()}
+    start() -> PollId
 
         Types   PollId = port()
 
@@ -49,7 +49,7 @@ error reports.
     poll(PollId, FD, Options) -> ok | {error, Error}
 
         Types   PollId = port()
-                FD = int32()
+                FD = integer()
                 Options = [ {timeout, Timeout} | {mode, Mode} ]
                 Timeout = infinity | uint()
                 Mode = read | write | read_write
@@ -67,7 +67,7 @@ error reports.
     fdset(PollId, FD, Options) -> ok | {error, Error}
 
         Types   PollId = port()
-                FD = int32()
+                FD = integer()
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
                 Error = closed | posix()
@@ -96,7 +96,7 @@ error reports.
     fdclr(PollId, FD, Options) -> ok | {error, Error}
 
         Types   PollId = port()
-                FD = int32()
+                FD = integer()
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
                 Error = closed | posix()

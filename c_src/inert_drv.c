@@ -118,7 +118,7 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
         | (unsigned char)buf[7];
 
     if (event.fd < 0 || event.fd >= d->maxfd || fcntl(event.fd, F_GETFD) < 0)
-        return inert_errno(rbuf, &rlen, EBADFD);
+        return inert_errno(rbuf, &rlen, EBADF);
 
     switch (command) {
         case INERT_FDSET:

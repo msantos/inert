@@ -43,11 +43,11 @@ stop(PollId) ->
 
 inert_badfd(PollId) ->
     [
-        ?_assertEqual({error, ebadfd}, inert:fdset(PollId, -1)),
-        ?_assertEqual({error, ebadfd}, inert:poll(PollId, -1)),
-        ?_assertEqual({error, ebadfd}, inert:fdset(PollId, 127)),
-        ?_assertEqual({error, ebadfd}, inert:fdset(PollId, 128)),
-        ?_assertEqual({error, ebadfd}, inert:fdset(PollId, 10000))
+        ?_assertEqual({error, ebadf}, inert:fdset(PollId, -1)),
+        ?_assertEqual({error, ebadf}, inert:poll(PollId, -1)),
+        ?_assertEqual({error, ebadf}, inert:fdset(PollId, 127)),
+        ?_assertEqual({error, ebadf}, inert:fdset(PollId, 128)),
+        ?_assertEqual({error, ebadf}, inert:fdset(PollId, 10000))
     ].
 
 inert_select(PollId) ->

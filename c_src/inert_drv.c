@@ -26,6 +26,11 @@
 #include "erl_driver.h"
 #include "ei.h"
 
+#define get_int32(s) ((((unsigned char*) (s))[0] << 24) | \
+                      (((unsigned char*) (s))[1] << 16) | \
+                      (((unsigned char*) (s))[2] << 8)  | \
+                      (((unsigned char*) (s))[3]))
+
 enum {
     INERT_FDSET = 1,
     INERT_FDCLR,
@@ -109,15 +114,8 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
     if (len != 8)
         return -1;
 
-    event.fd = ((unsigned char)buf[0] << 24)
-        | ((unsigned char)buf[1] << 16)
-        | ((unsigned char)buf[2] << 8)
-        | (unsigned char)buf[3];
-
-    mode = ((unsigned char)buf[4] << 24)
-        | ((unsigned char)buf[5] << 16)
-        | ((unsigned char)buf[6] << 8)
-        | (unsigned char)buf[7];
+    event.fd = get_int32(buf);
+    mode = get_int32(buf+4);
 
     if (event.fd < 0 || event.fd >= d->maxfd || fcntl(event.fd, F_GETFD) < 0)
         return inert_errno(rbuf, &rlen, EBADF);

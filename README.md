@@ -1,8 +1,6 @@
 inert is a library for asynchronous socket notifications. To be scheduler
 friendly, inert uses the native Erlang socket polling mechanism.
 
-_WARNING:_ this library is under development
-
 # QUICK USAGE
 
     STDOUT = 1,

@@ -26,8 +26,10 @@
 #include "erl_driver.h"
 #include "ei.h"
 
-#define INERT_FDSET     1
-#define INERT_FDCLR     2
+enum {
+    INERT_FDSET = 1,
+    INERT_FDCLR,
+};
 
 typedef struct {
     ErlDrvTermData caller;

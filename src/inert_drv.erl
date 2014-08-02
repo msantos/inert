@@ -32,6 +32,8 @@
 -define(ERL_DRV_WRITE, (1 bsl 1)).
 -define(ERL_DRV_USE, (1 bsl 2)).
 
+-define(INT32(N), N:4/big-signed-integer-unit:8).
+
 start() ->
     case erl_ddll:load(priv_dir(), ?MODULE) of
         ok -> ok;
@@ -58,12 +60,11 @@ command(fdclr) -> ?INERT_FDCLR.
 
 encode(FD) when is_integer(FD) -> encode({FD, read});
 encode({FD, read}) ->
-    [<<FD:4/big-signed-integer-unit:8, ?ERL_DRV_READ:4/big-signed-integer-unit:8>>];
+    [<<?INT32(FD), ?INT32(?ERL_DRV_READ)>>];
 encode({FD, write}) ->
-    [<<FD:4/big-signed-integer-unit:8, ?ERL_DRV_WRITE:4/big-signed-integer-unit:8>>];
+    [<<?INT32(FD), ?INT32(?ERL_DRV_WRITE)>>];
 encode({FD, read_write}) ->
-    [<<FD:4/big-signed-integer-unit:8,
-        (?ERL_DRV_READ bor ?ERL_DRV_WRITE):4/big-signed-integer-unit:8>>].
+    [<<?INT32(FD), ?INT32((?ERL_DRV_READ bor ?ERL_DRV_WRITE))>>].
 
 priv_dir() ->
     case code:priv_dir(?MODULE) of

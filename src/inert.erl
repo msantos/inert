@@ -14,92 +14,54 @@
 -module(inert).
 
 %% API
--export([start/0, stop/1]).
+-export([start/0, stop/0]).
 -export([
-        fdset/2, fdset/3,
-        fdclr/2, fdclr/3,
-        poll/2, poll/3,
+        fdset/1, fdset/2,
+        fdclr/1, fdclr/2,
+        poll/1, poll/2,
+        pollid/0,
 
-        controlling_process/2
+        controlling_process/1
     ]).
 
 start() ->
-    ok = inert_drv:start(),
-    open_port({spawn_driver, "inert_drv"}, [stream]).
+    Port = prim_inert:start(),
+    try register(inert, Port)
+    catch
+        error:badarg -> ok
+    end,
+    ok.
 
-stop(Port) ->
-    true = erlang:port_close(Port),
-    inert_drv:stop().
+stop() ->
+    prim_inert:stop(inert).
 
--spec fdset(port(), integer()) -> 'ok' | {'error',file:posix() | 'closed'}.
-fdset(Port, FD) ->
-    fdset(Port, FD, []).
+pollid() ->
+    whereis(inert).
 
--spec fdset(port(), integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed'}.
-fdset(Port, FD, Options) ->
-    Mode = proplists:get_value(mode, Options, read),
-    Event = inert_drv:encode({FD, Mode}),
-    inert_drv:ctl(Port, fdset, Event).
+-spec fdset(integer()) -> 'ok' | {'error',file:posix() | 'closed'}.
+fdset(FD) ->
+    fdset(FD, []).
 
--spec fdclr(port(), integer()) -> 'ok' | {'error',file:posix() | 'closed'}.
-fdclr(Port, FD) ->
-    fdclr(Port, FD, []).
+-spec fdset(integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed'}.
+fdset(FD, Options) ->
+    prim_inert:fdset(inert, FD, Options).
 
--spec fdclr(port(), integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed'}.
-fdclr(Port, FD, Options) ->
-    Mode = proplists:get_value(mode, Options, read_write),
-    Event = inert_drv:encode({FD, Mode}),
-    inert_drv:ctl(Port, fdclr, Event).
+-spec fdclr(integer()) -> 'ok' | {'error',file:posix() | 'closed'}.
+fdclr(FD) ->
+    fdclr(FD, []).
 
--spec poll(port(), integer()) -> 'ok' | {'error',file:posix() | 'closed' | 'timeout'}.
-poll(Port, FD) ->
-    poll(Port, FD, []).
+-spec fdclr(integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed'}.
+fdclr(FD, Options) ->
+    prim_inert:fdclr(inert, FD, Options).
 
--spec poll(port(), integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed' | 'timeout'}.
-poll(Port, FD, Options) ->
-    case fdset(Port, FD, Options) of
-        ok ->
-            poll_1(Port, FD, Options);
-        Error ->
-            Error
-    end.
+-spec poll(integer()) -> 'ok' | {'error',file:posix() | 'closed' | 'timeout'}.
+poll(FD) ->
+    poll(FD, []).
 
-poll_1(Port, FD, Options) when is_port(Port) ->
-    Mode = proplists:get_value(mode, Options, read),
-    Timeout = proplists:get_value(timeout, Options, infinity),
-    receive
-        {inert_read, Port, FD} ->
-            ok;
-        {inert_write, Port, FD} ->
-            ok
-    after
-        Timeout ->
-            inert:fdclr(Port, FD, [{mode, Mode}]),
-            {error, timeout}
-    end.
+-spec poll(integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed' | 'timeout'}.
+poll(FD, Options) ->
+    prim_inert:poll(inert, FD, Options).
 
--spec controlling_process(port(), pid()) -> 'ok' | {'error', 'not_owner' | 'einval'}.
-controlling_process(Port, Pid) when is_port(Port), is_pid(Pid) ->
-    Owner = self(),
-    case erlang:port_info(Port, connected) of
-        {connected, Pid} ->
-            ok;
-        {connected, Owner} ->
-            erlang:port_connect(Port, Pid),
-            unlink(Port),
-            receive
-                {'EXIT', Port, _} ->
-                    ok
-            after
-                0 ->
-                    ok
-            end;
-        {connected, _} ->
-            {error, not_owner};
-        _ ->
-            {error, einval}
-    end.
-
-%%--------------------------------------------------------------------
-%%% Internal functions
-%%--------------------------------------------------------------------
+-spec controlling_process(pid()) -> 'ok' | {'error', 'not_owner' | 'einval'}.
+controlling_process(Pid) when is_pid(Pid) ->
+    prim_inert:controlling_process(inert, Pid).

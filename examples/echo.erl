@@ -22,7 +22,7 @@ listen() ->
     listen(0).
 
 listen(Port) ->
-    PollId = inert:start(),
+    ok = inert:start(),
 
     {ok, Socket} = procket:socket(inet, stream, 0),
     Sockaddr = <<
@@ -38,25 +38,25 @@ listen(Port) ->
     {ok, <<_:16, ListenPort:16, _/binary>>} = procket:getsockname(Socket, Sockaddr),
     error_logger:info_report([{listening, ListenPort}]),
 
-    accept(PollId, Socket).
+    accept(Socket).
 
-accept(PollId, Listen) ->
-    ok = inert:poll(PollId, Listen),
+accept(Listen) ->
+    ok = inert:poll(Listen),
     {ok, Socket} = procket:accept(Listen),
     error_logger:info_report([{accept, Socket}]),
-    spawn(fun() -> echo(PollId, Socket) end),
-    accept(PollId, Listen).
+    spawn(fun() -> echo(Socket) end),
+    accept(Listen).
 
-echo(PollId, Socket) ->
-    ok = inert:poll(PollId, Socket),
+echo(Socket) ->
+    ok = inert:poll(Socket),
     case procket:read(Socket, 16#ffff) of
         {ok, <<>>} ->
             error_logger:info_report([{close, Socket}]),
-            ok = inert:fdclr(PollId, Socket),
+            ok = inert:fdclr(Socket),
             ok = procket:close(Socket),
             ok;
         {ok, Buf} ->
-            ok = inert:poll(PollId, Socket, [{mode, write}]),
+            ok = inert:poll(Socket, [{mode, write}]),
             ok = procket:write(Socket, Buf),
-            echo(PollId, Socket)
+            echo(Socket)
     end.

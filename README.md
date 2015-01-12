@@ -4,8 +4,8 @@ friendly, inert uses the native Erlang socket polling mechanism.
 # QUICK USAGE
 
     STDOUT = 1,
-    PollId = inert:start(),
-    ok = inert:poll(PollId, STDOUT).
+    ok = inert:start(),
+    ok = inert:poll(STDOUT).
 
 # OVERVIEW
 
@@ -37,17 +37,14 @@ error reports.
 
 ## inert
 
-    start() -> PollId
-
-        Types   PollId = port()
+    start() -> ok
 
         Start the inert service.
 
-    poll(PollId, FD) -> ok | {error, Error}
-    poll(PollId, FD, Options) -> ok | {error, Error}
+    poll(FD) -> ok | {error, Error}
+    poll(FD, Options) -> ok | {error, Error}
 
-        Types   PollId = port()
-                FD = integer()
+        Types   FD = integer()
                 Options = [ {timeout, Timeout} | {mode, Mode} ]
                 Timeout = infinity | uint()
                 Mode = read | write | read_write
@@ -61,11 +58,16 @@ error reports.
         specified timeout (in milliseconds) and return the tuple {error,
         timeout}.
 
-    fdset(PollId, FD) -> ok | {error, Error}
-    fdset(PollId, FD, Options) -> ok | {error, Error}
+    pollid() -> PollId
 
         Types   PollId = port()
-                FD = integer()
+
+        Retrieves the port identifier for the inert driver.
+
+    fdset(FD) -> ok | {error, Error}
+    fdset(FD, Options) -> ok | {error, Error}
+
+        Types   FD = integer()
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
                 Error = closed | posix()
@@ -78,6 +80,8 @@ error reports.
             {inert_read, PollId, FD}   % fd is ready for reading
             {inert_write, PollId, FD}  % fd is ready for writing
 
+        Use pollid/0 to retrieve the descriptor for the inert driver.
+
         When requesting a monitoring mode of read_write, the calling
         process may receive two messages (one for read, one for write).
 
@@ -86,25 +90,23 @@ error reports.
 
         Successive calls to fdset/2,3 reset the mode:
 
-            fdset(PollId, FD, [{mode, read_write}]),
-            fdset(PollId, FD, [{mode, write}]).
+            fdset(FD, [{mode, read_write}]),
+            fdset(FD, [{mode, write}]).
             % monitoring the fd for write events only
 
-    fdclr(PollId, FD) -> ok | {error, Error}
-    fdclr(PollId, FD, Options) -> ok | {error, Error}
+    fdclr(FD) -> ok | {error, Error}
+    fdclr(FD, Options) -> ok | {error, Error}
 
-        Types   PollId = port()
-                FD = integer()
+        Types   FD = integer()
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
                 Error = closed | posix()
 
         Clear an event set for a file descriptor.
 
-    controlling_process(PollId, PID) -> ok | {error, Error}
+    controlling_process(PID) -> ok | {error, Error}
 
-        Types   PollId = port()
-                PID = pid()
+        Types   PID = pid()
                 Error = not_owner | einval
 
         Transfer ownership of the inert port driver from the current
@@ -155,7 +157,7 @@ is the equivalent of:
 -endif.
 
 ssh() ->
-    PollId = inert:start(),
+    ok = inert:start(),
     {ok, Socket} = procket:socket(inet, stream, 0),
     Sockaddr = <<(procket:sockaddr_common(?PF_INET, 16))/binary,
             22:16,          % Port
@@ -166,13 +168,13 @@ ssh() ->
         ok ->
             ok;
         {error, einprogress} ->
-            poll(PollId, Socket)
+            poll(Socket)
     end,
-    ok = inert:poll(PollId, Socket, [{mode,read}]),
+    ok = inert:poll(Socket, [{mode,read}]),
     procket:read(Socket, 16#ffff).
 
-poll(PollId, Socket) ->
-    ok = inert:poll(PollId, Socket, [{mode,write}]),
+poll(Socket) ->
+    ok = inert:poll(Socket, [{mode,write}]),
     case procket:getsockopt(Socket, ?SOL_SOCKET, ?SO_ERROR, <<>>) of
         {ok, _Buf} ->
             ok;

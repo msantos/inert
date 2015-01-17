@@ -41,6 +41,10 @@ error reports.
 
         Start the inert service.
 
+    stop() -> ok
+
+        Stop the inert service.
+
     poll(FD) -> ok | {error, Error}
     poll(FD, Options) -> ok | {error, Error}
 

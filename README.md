@@ -104,9 +104,12 @@ error reports.
 
         Clear an event set for a file descriptor.
 
-    controlling_process(PID) -> ok | {error, Error}
+## prim\_inert
 
-        Types   PID = pid()
+    controlling_process(Port, PID) -> ok | {error, Error}
+
+        Types   Port = port()
+                PID = pid()
                 Error = not_owner | einval
 
         Transfer ownership of the inert port driver from the current

@@ -19,9 +19,7 @@
         fdset/1, fdset/2,
         fdclr/1, fdclr/2,
         poll/1, poll/2,
-        pollid/0,
-
-        controlling_process/1
+        pollid/0
     ]).
 
 start() ->
@@ -30,6 +28,7 @@ start() ->
     catch
         error:badarg -> ok
     end,
+    unlink(Port),
     ok.
 
 stop() ->
@@ -61,7 +60,3 @@ poll(FD) ->
 -spec poll(integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed' | 'timeout'}.
 poll(FD, Options) ->
     prim_inert:poll(inert, FD, Options).
-
--spec controlling_process(pid()) -> 'ok' | {'error', 'not_owner' | 'einval'}.
-controlling_process(Pid) when is_pid(Pid) ->
-    prim_inert:controlling_process(inert, Pid).

@@ -98,10 +98,26 @@ wait(Port, FD, Options) when is_atom(Port) ->
 wait(Port, FD, Options) when is_port(Port) ->
     Mode = proplists:get_value(mode, Options, read),
     Timeout = proplists:get_value(timeout, Options, infinity),
+    wait_1(Port, FD, Mode, Timeout).
+
+wait_1(Port, FD, read_write, Timeout) ->
     receive
         {inert_read, Port, FD} ->
             ok;
         {inert_write, Port, FD} ->
+            ok
+    after
+        Timeout ->
+            fdclr(Port, FD, [{mode, read_write}]),
+            {error, timeout}
+    end;
+wait_1(Port, FD, Mode, Timeout) ->
+    Tag = case Mode of
+        read -> inert_read;
+        write -> inert_write
+    end,
+    receive
+        {Tag, Port, FD} ->
             ok
     after
         Timeout ->

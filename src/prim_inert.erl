@@ -103,8 +103,10 @@ wait(Port, FD, Options) when is_port(Port) ->
 wait_1(Port, FD, read_write, Timeout) ->
     receive
         {inert_read, Port, FD} ->
+            fdclr(Port, FD, [{mode, write}]),
             ok;
         {inert_write, Port, FD} ->
+            fdclr(Port, FD, [{mode, read}]),
             ok
     after
         Timeout ->

@@ -29,6 +29,7 @@ run(_) ->
         inert_badfd(),
         inert_select(),
         inert_stream(),
+        inert_poll_read_write(),
         inert_poll_timeout(),
         inert_stateless_fdset(),
         inert_controlling_process(),
@@ -138,6 +139,21 @@ connect(Port, N) ->
     ok = gen_tcp:send(C, Bin),
     ok = gen_tcp:close(C),
     connect(Port, N-1).
+
+inert_poll_read_write() ->
+    {ok, Socket} = gen_udp:open(0, [{active,false}]),
+    {ok, FD} = inet:getfd(Socket),
+    ok = inert:poll(FD, [{mode,read_write}]),
+    PollId = inert:pollid(),
+    Reply = receive
+        {Tag, PollId, FD} when Tag == inert_read; Tag == inert_write ->
+            {error, Tag}
+    after
+        10 ->
+            ok
+    end,
+    gen_udp:close(Socket),
+    ?_assertEqual(ok, Reply).
 
 inert_poll_timeout() ->
     {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),

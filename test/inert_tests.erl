@@ -31,6 +31,7 @@ run(_) ->
         inert_stream(),
         inert_poll_read_write(),
         inert_poll_timeout(),
+        inert_poll_race_timeout(),
         inert_stateless_fdset(),
         inert_controlling_process(),
         inert_error_closed()
@@ -159,6 +160,20 @@ inert_poll_timeout() ->
     {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),
     {ok, FD} = inet:getfd(Socket),
     ?_assertEqual({error, timeout}, inert:poll(FD, [{timeout, 10}])).
+
+inert_poll_race_timeout() ->
+    {ok, Socket} = gen_udp:open(0, []),
+    {ok, FD} = inet:getfd(Socket),
+
+    Result = [ begin
+                inert:poll(FD, [{mode, read_write},{timeout,0}]),
+                receive
+                    X -> X
+                after
+                    0 -> ok
+                end
+        end || _ <- lists:seq(1,1000) ],
+    ?_assertEqual([], [ N || N <- Result, N /= ok ]).
 
 % Test successive calls to fdset overwrite the previous mode
 inert_stateless_fdset() ->

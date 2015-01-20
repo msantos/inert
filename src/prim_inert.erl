@@ -111,8 +111,7 @@ wait_1(Port, FD, read_write, Timeout) ->
     after
         Timeout ->
             fdclr(Port, FD, [{mode, read_write}]),
-            flush(Port, FD),
-            {error, timeout}
+            flush(Port, FD, read_write)
     end;
 wait_1(Port, FD, Mode, Timeout) ->
     Tag = case Mode of
@@ -125,23 +124,34 @@ wait_1(Port, FD, Mode, Timeout) ->
     after
         Timeout ->
             fdclr(Port, FD, [{mode, Mode}]),
-            receive
-                {Mode, Port, FD} ->
-                    ok
-            after
-                0 ->
-                    ok
-            end,
-            {error, timeout}
+            flush(Port, FD, Mode)
     end.
 
-flush(Port, FD) ->
+flush(Port, FD, read_write) ->
     receive
         {inert_read, Port, FD} ->
-            flush(Port, FD);
+            flush(Port, FD, write),
+            ok;
         {inert_write, Port, FD} ->
-            flush(Port, FD)
+            flush(Port, FD, read),
+            ok
     after
         0 ->
+            {error,timeout}
+    end;
+flush(Port, FD, read) ->
+    receive
+        {inert_read, Port, FD} ->
             ok
+    after
+        0 ->
+            {error,timeout}
+    end;
+flush(Port, FD, write) ->
+    receive
+        {inert_write, Port, FD} ->
+            ok
+    after
+        0 ->
+            {error,timeout}
     end.

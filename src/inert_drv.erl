@@ -62,11 +62,11 @@ command(fdclr) -> ?INERT_FDCLR.
 
 encode(FD) when is_integer(FD) -> encode({FD, read});
 encode({FD, read}) ->
-    [<<?INT32(FD), ?INT32(?ERL_DRV_READ)>>];
+    <<?INT32(FD), ?INT32(?ERL_DRV_READ)>>;
 encode({FD, write}) ->
-    [<<?INT32(FD), ?INT32(?ERL_DRV_WRITE)>>];
+    <<?INT32(FD), ?INT32(?ERL_DRV_WRITE)>>;
 encode({FD, read_write}) ->
-    [<<?INT32(FD), ?INT32((?ERL_DRV_READ bor ?ERL_DRV_WRITE))>>].
+    <<?INT32(FD), ?INT32((?ERL_DRV_READ bor ?ERL_DRV_WRITE))>>.
 
 priv_dir() ->
     case code:priv_dir(?MODULE) of

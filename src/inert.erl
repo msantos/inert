@@ -37,26 +37,26 @@ stop() ->
 pollid() ->
     whereis(inert).
 
--spec fdset(integer()) -> 'ok' | {'error',file:posix() | 'closed'}.
+-spec fdset(integer()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
 fdset(FD) ->
     fdset(FD, []).
 
--spec fdset(integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed'}.
+-spec fdset(integer(), proplists:proplist()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
 fdset(FD, Options) ->
     prim_inert:fdset(inert, FD, Options).
 
--spec fdclr(integer()) -> 'ok' | {'error',file:posix() | 'closed'}.
+-spec fdclr(integer()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
 fdclr(FD) ->
     fdclr(FD, []).
 
--spec fdclr(integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed'}.
+-spec fdclr(integer(), proplists:proplist()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
 fdclr(FD, Options) ->
     prim_inert:fdclr(inert, FD, Options).
 
--spec poll(integer()) -> 'ok' | {'error',file:posix() | 'closed' | 'timeout'}.
+-spec poll(integer()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed' | 'timeout'}.
 poll(FD) ->
     poll(FD, []).
 
--spec poll(integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed' | 'timeout'}.
+-spec poll(integer(), proplists:proplist()) -> 'ok' | {'error','ebadf' | 'einval'| 'closed' | 'timeout'}.
 poll(FD, Options) ->
     prim_inert:poll(inert, FD, Options).

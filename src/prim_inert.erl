@@ -32,31 +32,31 @@ stop(Port) ->
     true = erlang:port_close(Port),
     inert_drv:stop().
 
--spec fdset(inert_drv:ref(), integer()) -> 'ok' | {'error',file:posix() | 'closed'}.
+-spec fdset(inert_drv:ref(), integer()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
 fdset(Port, FD) ->
     fdset(Port, FD, []).
 
--spec fdset(inert_drv:ref(), integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed'}.
+-spec fdset(inert_drv:ref(), integer(), proplists:proplist()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
 fdset(Port, FD, Options) ->
     Mode = proplists:get_value(mode, Options, read),
     Event = inert_drv:encode({FD, Mode}),
     inert_drv:ctl(Port, fdset, Event).
 
--spec fdclr(inert_drv:ref(), integer()) -> 'ok' | {'error',file:posix() | 'closed'}.
+-spec fdclr(inert_drv:ref(), integer()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
 fdclr(Port, FD) ->
     fdclr(Port, FD, []).
 
--spec fdclr(inert_drv:ref(), integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed'}.
+-spec fdclr(inert_drv:ref(), integer(), proplists:proplist()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
 fdclr(Port, FD, Options) ->
     Mode = proplists:get_value(mode, Options, read_write),
     Event = inert_drv:encode({FD, Mode}),
     inert_drv:ctl(Port, fdclr, Event).
 
--spec poll(inert_drv:ref(), integer()) -> 'ok' | {'error',file:posix() | 'closed' | 'timeout'}.
+-spec poll(inert_drv:ref(), integer()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed' | 'timeout'}.
 poll(Port, FD) ->
     poll(Port, FD, []).
 
--spec poll(inert_drv:ref(), integer(), proplists:proplist()) -> 'ok' | {'error',file:posix() | 'closed' | 'timeout'}.
+-spec poll(inert_drv:ref(), integer(), proplists:proplist()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed' | 'timeout'}.
 poll(Port, FD, Options) ->
     case fdset(Port, FD, Options) of
         ok ->

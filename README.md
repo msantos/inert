@@ -52,7 +52,7 @@ error reports.
                 Options = [ {timeout, Timeout} | {mode, Mode} ]
                 Timeout = infinity | uint()
                 Mode = read | write | read_write
-                Error = closed | timeout | posix()
+                Error = closed | timeout | ebadf | einval
 
         poll/2,3 blocks until a file descriptor is ready for reading
         or writing (default mode: read).
@@ -74,7 +74,7 @@ error reports.
         Types   FD = integer()
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
-                Error = closed | posix()
+                Error = closed | ebadf | einval
 
         Monitor a file descriptor for events (default mode: read).
 
@@ -104,7 +104,7 @@ error reports.
         Types   FD = integer()
                 Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
-                Error = closed | posix()
+                Error = closed | ebadf | einval
 
         Clear an event set for a file descriptor.
 

@@ -46,7 +46,7 @@ stop() ->
     erl_ddll:unload(?MODULE),
     ok.
 
--spec ctl(ref(), command() | non_neg_integer(), iodata()) -> 'ok' | {'error', file:posix() | 'closed'}.
+-spec ctl(ref(), command() | non_neg_integer(), iodata()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
 ctl(Port, Op, Data) when is_atom(Op) ->
     ctl(Port, command(Op), Data);
 ctl(Port, Op, Data) ->

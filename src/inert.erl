@@ -53,10 +53,10 @@ fdclr(FD) ->
 fdclr(FD, Options) ->
     prim_inert:fdclr(inert, FD, Options).
 
--spec poll(integer()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed' | 'timeout'}.
+-spec poll(integer()) -> {'ok','read'} | {'error','ebadf' | 'einval' | 'closed' | 'timeout'}.
 poll(FD) ->
     poll(FD, []).
 
--spec poll(integer(), proplists:proplist()) -> 'ok' | {'error','ebadf' | 'einval'| 'closed' | 'timeout'}.
+-spec poll(integer(), proplists:proplist()) -> {'ok','read' | 'write'} | {'error','ebadf' | 'einval'| 'closed' | 'timeout'}.
 poll(FD, Options) ->
     prim_inert:poll(inert, FD, Options).

@@ -114,7 +114,7 @@ wait(S, N) ->
 read(Pid, FD) ->
     read(Pid, FD, 0).
 read(Pid, FD, N) ->
-    ok = inert:poll(FD),
+    {ok,read} = inert:poll(FD),
     case procket:read(FD, 1) of
         {ok, <<>>} ->
             procket:close(FD),
@@ -144,7 +144,7 @@ connect(Port, N) ->
 inert_poll_read_write() ->
     {ok, Socket} = gen_udp:open(0, [{active,false}]),
     {ok, FD} = inet:getfd(Socket),
-    ok = inert:poll(FD, [{mode,read_write}]),
+    {ok,_} = inert:poll(FD, [{mode,read_write}]),
     PollId = inert:pollid(),
     Reply = receive
         {Tag, PollId, FD} when Tag == inert_read; Tag == inert_write ->
@@ -216,13 +216,13 @@ inert_controlling_process() ->
             gen_udp:close(Socket),
             N
     end,
-    ?_assertEqual(ok, Result).
+    ?_assertEqual({ok,write}, Result).
 
 inert_controlling_process(PollId, Parent, _FD, 3) ->
     ok = prim_inert:controlling_process(PollId, Parent),
     Parent ! inert_controlling_process;
 inert_controlling_process(PollId, Parent, FD, N) ->
-    ok = prim_inert:poll(PollId, FD, [{mode, write}]),
+    {ok,write} = prim_inert:poll(PollId, FD, [{mode, write}]),
     Pid1 = spawn(fun() -> inert_controlling_process(PollId, Parent, FD, N+1) end),
     ok = prim_inert:controlling_process(PollId, Pid1).
 

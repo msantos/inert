@@ -41,14 +41,14 @@ listen(Port) ->
     accept(Socket).
 
 accept(Listen) ->
-    ok = inert:poll(Listen),
+    {ok,read} = inert:poll(Listen),
     {ok, Socket} = procket:accept(Listen),
     error_logger:info_report([{accept, Socket}]),
     spawn(fun() -> echo(Socket) end),
     accept(Listen).
 
 echo(Socket) ->
-    ok = inert:poll(Socket),
+    {ok,read} = inert:poll(Socket),
     case procket:read(Socket, 16#ffff) of
         {ok, <<>>} ->
             error_logger:info_report([{close, Socket}]),
@@ -56,7 +56,7 @@ echo(Socket) ->
             ok = procket:close(Socket),
             ok;
         {ok, Buf} ->
-            ok = inert:poll(Socket, [{mode, write}]),
+            {ok,read} = inert:poll(Socket, [{mode, write}]),
             ok = procket:write(Socket, Buf),
             echo(Socket)
     end.

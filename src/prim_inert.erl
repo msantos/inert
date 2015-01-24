@@ -52,11 +52,11 @@ fdclr(Port, FD, Options) ->
     Event = inert_drv:encode({FD, Mode}),
     inert_drv:ctl(Port, fdclr, Event).
 
--spec poll(inert_drv:ref(), integer()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed' | 'timeout'}.
+-spec poll(inert_drv:ref(), integer()) -> {'ok','read'} | {'error','ebadf' | 'einval' | 'closed' | 'timeout'}.
 poll(Port, FD) ->
     poll(Port, FD, []).
 
--spec poll(inert_drv:ref(), integer(), proplists:proplist()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed' | 'timeout'}.
+-spec poll(inert_drv:ref(), integer(), proplists:proplist()) -> {'ok','read' | 'write'} | {'error','ebadf' | 'einval' | 'closed' | 'timeout'}.
 poll(Port, FD, Options) ->
     case fdset(Port, FD, Options) of
         ok ->
@@ -104,10 +104,10 @@ wait_1(Port, FD, read_write, Timeout) ->
     receive
         {inert_read, Port, FD} ->
             fdclr(Port, FD, [{mode, write}]),
-            ok;
+            {ok,read};
         {inert_write, Port, FD} ->
             fdclr(Port, FD, [{mode, read}]),
-            ok
+            {ok,write}
     after
         Timeout ->
             fdclr(Port, FD, [{mode, read_write}]),
@@ -120,7 +120,7 @@ wait_1(Port, FD, Mode, Timeout) ->
     end,
     receive
         {Tag, Port, FD} ->
-            ok
+            {ok, Mode}
     after
         Timeout ->
             fdclr(Port, FD, [{mode, Mode}]),
@@ -131,10 +131,10 @@ flush(Port, FD, read_write) ->
     receive
         {inert_read, Port, FD} ->
             flush(Port, FD, write),
-            ok;
+            {ok,read};
         {inert_write, Port, FD} ->
             flush(Port, FD, read),
-            ok
+            {ok,write}
     after
         0 ->
             {error,timeout}
@@ -142,7 +142,7 @@ flush(Port, FD, read_write) ->
 flush(Port, FD, read) ->
     receive
         {inert_read, Port, FD} ->
-            ok
+            {ok,read}
     after
         0 ->
             {error,timeout}
@@ -150,7 +150,7 @@ flush(Port, FD, read) ->
 flush(Port, FD, write) ->
     receive
         {inert_write, Port, FD} ->
-            ok
+            {ok,write}
     after
         0 ->
             {error,timeout}

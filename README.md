@@ -1,11 +1,14 @@
-inert is a library for asynchronous socket notifications. To be scheduler
-friendly, inert uses the native Erlang socket polling mechanism.
+inert is a library for asynchronous notification of events on file
+descriptors. To be scheduler friendly, inert uses the native Erlang
+socket polling mechanism.
+
+Stable version: 0.2.1
 
 # QUICK USAGE
 
     STDOUT = 1,
     ok = inert:start(),
-    ok = inert:poll(STDOUT).
+    {ok,read} = inert:poll(STDOUT).
 
 # OVERVIEW
 
@@ -45,8 +48,8 @@ error reports.
 
         Stop the inert service.
 
-    poll(FD) -> ok | {error, Error}
-    poll(FD, Options) -> ok | {error, Error}
+    poll(FD) -> {ok,read} | {error, Error}
+    poll(FD, Options) -> {ok, Mode} | {error, Error}
 
         Types   FD = integer()
                 Options = [ {timeout, Timeout} | {mode, Mode} ]
@@ -177,11 +180,11 @@ ssh() ->
         {error, einprogress} ->
             poll(Socket)
     end,
-    ok = inert:poll(Socket, [{mode,read}]),
+    {ok,read} = inert:poll(Socket, [{mode,read}]),
     procket:read(Socket, 16#ffff).
 
 poll(Socket) ->
-    ok = inert:poll(Socket, [{mode,write}]),
+    {ok,write} = inert:poll(Socket, [{mode,write}]),
     case procket:getsockopt(Socket, ?SOL_SOCKET, ?SO_ERROR, <<>>) of
         {ok, _Buf} ->
             ok;

@@ -104,9 +104,11 @@ wait_1(Port, FD, read_write, Timeout) ->
     receive
         {inert_read, Port, FD} ->
             fdclr(Port, FD, [{mode, write}]),
+            flush(Port, FD, write),
             {ok,read};
         {inert_write, Port, FD} ->
             fdclr(Port, FD, [{mode, read}]),
+            flush(Port, FD, read),
             {ok,write}
     after
         Timeout ->

@@ -33,7 +33,7 @@
 -define(ERL_DRV_WRITE, (1 bsl 1)).
 -define(ERL_DRV_USE, (1 bsl 2)).
 
--define(INT32(N), N:4/big-signed-integer-unit:8).
+-define(INT32(N), (N):4/big-signed-integer-unit:8).
 
 start() ->
     case erl_ddll:load(priv_dir(), ?MODULE) of

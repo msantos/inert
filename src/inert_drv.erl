@@ -23,6 +23,7 @@
 
 -type ref() :: port() | atom().
 -type command() :: 'fdset' | 'fdclr'.
+-type errno() :: {'error','ebadf' | 'einval' | 'closed'}.
 
 -export_type([ref/0,command/0]).
 
@@ -46,7 +47,7 @@ stop() ->
     erl_ddll:unload(?MODULE),
     ok.
 
--spec ctl(ref(), command() | non_neg_integer(), iodata()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
+-spec ctl(ref(), command() | non_neg_integer(), iodata()) -> 'ok' | errno().
 ctl(Port, Op, Data) when is_atom(Op) ->
     ctl(Port, command(Op), Data);
 ctl(Port, Op, Data) ->

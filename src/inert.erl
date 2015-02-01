@@ -37,26 +37,28 @@ stop() ->
 pollid() ->
     whereis(inert).
 
--spec fdset(integer()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
+-spec fdset(integer()) -> 'ok' | inert_drv:errno().
 fdset(FD) ->
     fdset(FD, []).
 
--spec fdset(integer(), proplists:proplist()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
+-spec fdset(integer(), proplists:proplist()) -> 'ok' | inert_drv:errno().
 fdset(FD, Options) ->
     prim_inert:fdset(inert, FD, Options).
 
--spec fdclr(integer()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
+-spec fdclr(integer()) -> 'ok' | inert_drv:errno().
 fdclr(FD) ->
     fdclr(FD, []).
 
--spec fdclr(integer(), proplists:proplist()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
+-spec fdclr(integer(), proplists:proplist()) -> 'ok' | inert_drv:errno().
 fdclr(FD, Options) ->
     prim_inert:fdclr(inert, FD, Options).
 
--spec poll(integer()) -> {'ok','read'} | {'error','ebadf' | 'einval' | 'closed' | 'timeout'}.
+-spec poll(integer()) ->
+    {'ok','read'} | {'error','timeout'} | inert_drv:errno().
 poll(FD) ->
     poll(FD, []).
 
--spec poll(integer(), proplists:proplist()) -> {'ok','read' | 'write'} | {'error','ebadf' | 'einval'| 'closed' | 'timeout'}.
+-spec poll(integer(), proplists:proplist()) ->
+    {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:erno().
 poll(FD, Options) ->
     prim_inert:poll(inert, FD, Options).

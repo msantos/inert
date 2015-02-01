@@ -32,31 +32,35 @@ stop(Port) ->
     true = erlang:port_close(Port),
     inert_drv:stop().
 
--spec fdset(inert_drv:ref(), integer()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
+-spec fdset(inert_drv:ref(), integer()) -> 'ok' | inert_drv:errno().
 fdset(Port, FD) ->
     fdset(Port, FD, []).
 
--spec fdset(inert_drv:ref(), integer(), proplists:proplist()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
+-spec fdset(inert_drv:ref(), integer(), proplists:proplist()) ->
+    'ok' | inert_drv:errno().
 fdset(Port, FD, Options) ->
     Mode = proplists:get_value(mode, Options, read),
     Event = inert_drv:encode({FD, Mode}),
     inert_drv:ctl(Port, fdset, Event).
 
--spec fdclr(inert_drv:ref(), integer()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
+-spec fdclr(inert_drv:ref(), integer()) -> 'ok' | inert_drv:errno().
 fdclr(Port, FD) ->
     fdclr(Port, FD, []).
 
--spec fdclr(inert_drv:ref(), integer(), proplists:proplist()) -> 'ok' | {'error','ebadf' | 'einval' | 'closed'}.
+-spec fdclr(inert_drv:ref(), integer(), proplists:proplist()) ->
+    'ok' | inert_drv:errno().
 fdclr(Port, FD, Options) ->
     Mode = proplists:get_value(mode, Options, read_write),
     Event = inert_drv:encode({FD, Mode}),
     inert_drv:ctl(Port, fdclr, Event).
 
--spec poll(inert_drv:ref(), integer()) -> {'ok','read'} | {'error','ebadf' | 'einval' | 'closed' | 'timeout'}.
+-spec poll(inert_drv:ref(), integer()) ->
+    {'ok','read'} | {'error','timeout'} | inert_drv:errno().
 poll(Port, FD) ->
     poll(Port, FD, []).
 
--spec poll(inert_drv:ref(), integer(), proplists:proplist()) -> {'ok','read' | 'write'} | {'error','ebadf' | 'einval' | 'closed' | 'timeout'}.
+-spec poll(inert_drv:ref(), integer(), proplists:proplist()) ->
+    {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:errno().
 poll(Port, FD, Options) ->
     case fdset(Port, FD, Options) of
         ok ->
@@ -65,7 +69,8 @@ poll(Port, FD, Options) ->
             Error
     end.
 
--spec controlling_process(inert_drv:ref(), pid()) -> 'ok' | {'error', 'not_owner' | 'einval'}.
+-spec controlling_process(inert_drv:ref(), pid()) ->
+    'ok' | {'error', 'not_owner' | 'einval'}.
 controlling_process(Port, Pid) when is_atom(Port), is_pid(Pid) ->
     controlling_process(whereis(Port), Pid);
 controlling_process(Port, Pid) when is_port(Port), is_pid(Pid) ->
@@ -92,7 +97,8 @@ controlling_process(Port, Pid) when is_port(Port), is_pid(Pid) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
--spec wait(inert_drv:ref(),integer(),proplists:proplist()) -> 'ok' | {'error','timeout'}.
+-spec wait(inert_drv:ref(),integer(),proplists:proplist()) ->
+    'ok' | {'error','timeout'}.
 wait(Port, FD, Options) when is_atom(Port) ->
     wait(whereis(Port), FD, Options);
 wait(Port, FD, Options) when is_port(Port) ->

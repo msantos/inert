@@ -1,7 +1,7 @@
 {application, inert,
     [
-    {description, "Asynchronous socket notification"},
-    {vsn, "0.5.2"},
+    {description, "Asynchronous notification of events on file descriptors"},
+    {vsn, "0.6.0"},
     {registered, []},
     {applications, [
         kernel,

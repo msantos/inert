@@ -34,7 +34,8 @@ run(_) ->
         inert_poll_race_timeout(),
         inert_stateless_fdset(),
         inert_controlling_process(),
-        inert_error_closed()
+        inert_error_closed(),
+        inert_fdownership()
     ].
 
 start() ->
@@ -231,6 +232,51 @@ inert_error_closed() ->
     PollId = prim_inert:start(),
     ok = prim_inert:stop(PollId),
     ?_assertEqual({error, closed}, prim_inert:poll(PollId, 1)).
+
+inert_fdownership() ->
+    {ok, Socket} = gen_udp:open(0, [binary, {active,false}]),
+    {ok, FD} = inet:getfd(Socket),
+    ok = inert:fdset(FD),
+    Self = self(),
+
+    % Test the fd is locked
+    spawn(fun() -> Self ! {inert_test, inert:fdset(FD)} end),
+    Reply1 = receive
+        {inert_test, Error1} -> Error1
+    after
+        1000 -> {error,timeout}
+    end,
+
+    % Spawned process clears our lock
+    spawn(fun() -> inert:fdclr(FD), Self ! {inert_test, inert:fdset(FD)} end),
+    Reply2 = receive
+        {inert_test, Error2} -> Error2
+    after
+        1000 -> {error,timeout}
+    end,
+
+    % Spawned process has exited, fd is unlocked
+    Reply3 = inert:fdset(FD),
+
+    % Spawn and process and remove the lock
+    spawn(fun() -> Self ! {inert_test, poll}, inert:poll(FD) end),
+    receive
+        {inert_test,poll} -> ok
+    end,
+    ok = inert:fdclr(FD),
+    spawn(fun() -> Self ! {inert_test, inert:fdset(FD)} end),
+    Reply4 = receive
+        {inert_test, Error4} -> Error4
+    after
+        1000 -> {error,timeout}
+    end,
+
+    [
+        ?_assertEqual({error,ebusy}, Reply1),
+        ?_assertEqual(ok, Reply2),
+        ?_assertEqual(ok, Reply3),
+        ?_assertEqual(ok, Reply4)
+    ].
 
 getenv(Var, Default) when is_list(Var), is_integer(Default) ->
     case os:getenv(Var) of

@@ -39,6 +39,8 @@ enum {
 typedef struct {
     ErlDrvTermData caller;
     int mode;
+    ErlDrvMonitor monitor;
+    int monitored;
 } inert_state_t;
 
 typedef struct {
@@ -110,6 +112,7 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
     inert_fd_t event = {0};
     int mode = 0;
     int on = 1;
+    ErlDrvTermData caller;
 
     if (len != 8)
         return -1;
@@ -120,8 +123,14 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
     if (event.fd < 0 || event.fd >= d->maxfd || fcntl(event.fd, F_GETFD) < 0)
         return inert_errno(rbuf, &rlen, EBADF);
 
+    caller = driver_caller(d->port);
+
     switch (command) {
         case INERT_FDSET:
+            if ( (d->state[event.fd].caller != 0)
+                    && (d->state[event.fd].caller != caller))
+                return inert_errno(rbuf, &rlen, EBUSY);
+
             /* Successive calls to driver_select do not overwrite the
              * previous mode of an event. From testing, it looks like
              * the modes are OR'ed together.
@@ -133,12 +142,30 @@ inert_drv_control(ErlDrvData drv_data, unsigned int command,
                 return -1;
 
             d->state[event.fd].mode = mode;
-            d->state[event.fd].caller = driver_caller(d->port);
+            d->state[event.fd].caller = caller;
 
+            if (d->state[event.fd].monitored) {
+                (void)driver_demonitor_process(d->port,
+                        &(d->state[event.fd].monitor));
+            }
+
+            if (driver_monitor_process(d->port,  caller,
+                        &(d->state[event.fd].monitor)) != 0)
+                return 0;
+
+            d->state[event.fd].monitored = 1;
             break;
         case INERT_FDCLR:
             on = 0;
             d->state[event.fd].mode &= ~mode;
+            d->state[event.fd].caller = 0;
+
+            if (d->state[event.fd].monitored) {
+                (void)driver_demonitor_process(d->port,
+                        &(d->state[event.fd].monitor));
+            }
+
+            d->state[event.fd].monitored = 0;
             break;
         default:
             return inert_errno(rbuf, &rlen, EINVAL);
@@ -194,6 +221,25 @@ inert_drv_ready(ErlDrvData drv_data, ErlDrvEvent event, int mode)
             res,
             sizeof(res) / sizeof(res[0])
             );
+
+    (void)driver_demonitor_process(d->port, &(d->state[fd].monitor));
+    d->state[fd].caller = 0;
+    d->state[fd].monitored = 0;
+}
+
+    static void
+inert_process_exit(ErlDrvData drv_data, ErlDrvMonitor *monitor)
+{
+    int fd = 0;
+    inert_drv_t *d = (inert_drv_t *)drv_data;
+    ErlDrvTermData caller = driver_get_monitored_process(d->port,  monitor);
+
+    for (fd = 0; fd < d->maxfd; fd++) {
+        if (d->state[fd].caller == caller) {
+            d->state[fd].caller = 0;
+            d->state[fd].monitored = 0;
+        }
+    }
 }
 
     static ErlDrvSSizeT
@@ -259,7 +305,7 @@ ErlDrvEntry inert_driver_entry = {
                                        set to this value */
     ERL_DRV_FLAG_USE_PORT_LOCKING|ERL_DRV_FLAG_SOFT_BUSY,  /* int driver_flags, see documentation */
     NULL,                           /* void *handle2, reserved for VM use */
-    NULL,                           /* F_PTR process_exit, called when a
+    inert_process_exit,             /* F_PTR process_exit, called when a
                                        monitored process dies */
     NULL                            /* F_PTR stop_select, called to close an
                                        event object */

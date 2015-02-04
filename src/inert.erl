@@ -59,6 +59,6 @@ poll(FD) ->
     poll(FD, []).
 
 -spec poll(integer(), proplists:proplist()) ->
-    {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:erno().
+    {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:errno().
 poll(FD, Options) ->
     prim_inert:poll(inert, FD, Options).

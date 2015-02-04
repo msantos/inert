@@ -27,7 +27,7 @@ start() ->
     ok = inert_drv:start(),
     open_port({spawn_driver, "inert_drv"}, [stream]).
 
--spec stop(inet_drv:ref()) -> 'ok'.
+-spec stop(inert_drv:ref()) -> 'ok'.
 stop(Port) ->
     true = erlang:port_close(Port),
     inert_drv:stop().

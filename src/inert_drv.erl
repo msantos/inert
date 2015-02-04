@@ -25,7 +25,7 @@
 -type command() :: 'fdset' | 'fdclr'.
 -type errno() :: {'error','ebadf' | 'einval' | 'closed'}.
 
--export_type([ref/0,command/0]).
+-export_type([ref/0,command/0,errno/0]).
 
 -define(INERT_FDSET, 1).
 -define(INERT_FDCLR, 2).

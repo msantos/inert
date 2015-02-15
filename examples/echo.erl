@@ -31,7 +31,7 @@ listen(Port) ->
         0,0,0,0,        % IPv4 ANY address
         0:64
         >>,
-    BACKLOG = 50,
+    BACKLOG = 1024,
     ok = procket:bind(Socket, Sockaddr),
     ok = procket:listen(Socket, BACKLOG),
 
@@ -56,7 +56,7 @@ echo(Socket) ->
             ok = procket:close(Socket),
             ok;
         {ok, Buf} ->
-            {ok,read} = inert:poll(Socket, [{mode, write}]),
+            {ok,write} = inert:poll(Socket, [{mode, write}]),
             ok = procket:write(Socket, Buf),
             echo(Socket)
     end.

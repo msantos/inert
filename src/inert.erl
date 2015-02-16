@@ -34,6 +34,7 @@ start() ->
 stop() ->
     prim_inert:stop(inert).
 
+-spec pollid() -> 'undefined' | port().
 pollid() ->
     whereis(inert).
 

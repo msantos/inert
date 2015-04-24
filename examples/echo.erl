@@ -26,7 +26,7 @@ listen(Port) ->
 
     {ok, Socket} = procket:socket(inet, stream, 0),
     Sockaddr = <<
-        (procket:sockaddr_common(?PF_INET, 16))/binary,
+        (procket:sockaddr_common(procket:family(inet), 16))/binary,
         Port:16,        % Port
         0,0,0,0,        % IPv4 ANY address
         0:64
@@ -52,7 +52,6 @@ echo(Socket) ->
     case procket:read(Socket, 16#ffff) of
         {ok, <<>>} ->
             error_logger:info_report([{close, Socket}]),
-            ok = inert:fdclr(Socket),
             ok = procket:close(Socket),
             ok;
         {ok, Buf} ->

@@ -47,7 +47,8 @@ stop() ->
     erl_ddll:unload(?MODULE),
     ok.
 
--spec ctl(ref(), command() | non_neg_integer(), iodata()) -> 'ok' | errno().
+-spec ctl(Port :: ref(), Op :: command() | non_neg_integer(),
+    Data :: iodata()) -> 'ok' | errno().
 ctl(Port, Op, Data) when is_atom(Op) ->
     ctl(Port, command(Op), Data);
 ctl(Port, Op, Data) ->

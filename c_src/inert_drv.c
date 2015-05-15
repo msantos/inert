@@ -26,6 +26,16 @@
 #include "erl_driver.h"
 #include "ei.h"
 
+/* Solaris needs u_int32_t defined */
+#ifdef __sun__
+  #ifndef _uint_defined
+    #include <stdint.h>
+    typedef uint32_t u_int32_t;
+    #define _uint_defined
+  #endif /* _uint_defined */
+#endif /* SOLARIS */
+
+
 #define get_int32(s) ((((unsigned char*) (s))[0] << 24) | \
                       (((unsigned char*) (s))[1] << 16) | \
                       (((unsigned char*) (s))[2] << 8)  | \

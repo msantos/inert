@@ -86,7 +86,7 @@ inert_drv_start(ErlDrvPort port, char *buf)
 
     d->maxfd = rlim.rlim_cur;
     d->state = driver_alloc(rlim.rlim_cur * sizeof(inert_state_t));
-    if (!d)
+    if (!d->state)
         return ERL_DRV_ERROR_ERRNO;
 
     (void)memset(d->state, 0, rlim.rlim_cur * sizeof(inert_state_t));

@@ -25,37 +25,68 @@ listen(Port) ->
     ok = inert:start(),
 
     {ok, Socket} = procket:socket(inet, stream, 0),
-    Sockaddr = <<
-        (procket:sockaddr_common(procket:family(inet), 16))/binary,
-        Port:16,        % Port
-        0,0,0,0,        % IPv4 ANY address
-        0:64
-        >>,
-    BACKLOG = 1024,
-    ok = procket:bind(Socket, Sockaddr),
-    ok = procket:listen(Socket, BACKLOG),
+    try
+        Sockaddr = <<
+            (procket:sockaddr_common(procket:family(inet), 16))/binary,
+            Port:16,        % Port
+            0,0,0,0,        % IPv4 ANY address
+            0:64
+            >>,
+        BACKLOG = 1024,
+        ok = procket:bind(Socket, Sockaddr),
+        ok = procket:listen(Socket, BACKLOG),
 
-    {ok, <<_:16, ListenPort:16, _/binary>>} = procket:getsockname(Socket, Sockaddr),
-    error_logger:info_report([{listening, ListenPort}]),
+        {ok, <<_:16, ListenPort:16, _/binary>>} = procket:getsockname(Socket, Sockaddr),
+        error_logger:info_report([{listening, ListenPort}])
+    catch
+        Error:Message ->
+            procket:close(Socket),
+            erlang:error({Error, Message})
+    end,
 
     accept(Socket).
 
 accept(Listen) ->
-    {ok,read} = inert:poll(Listen),
-    {ok, Socket} = procket:accept(Listen),
-    error_logger:info_report([{accept, Socket}]),
-    spawn(fun() -> echo(Socket) end),
+    inert:poll(Listen),
+    try procket:accept(Listen) of
+        {ok, Socket} ->
+            error_logger:info_report([{accept, Socket}]),
+            spawn(fun() -> echo(Socket) end);
+        {error,eagain} ->
+            ok;
+        Error ->
+            procket:close(Listen),
+            erlang:error(Error)
+    catch
+        Error:Message ->
+            procket:close(Listen),
+            erlang:error({Error, Message})
+    end,
     accept(Listen).
 
 echo(Socket) ->
-    {ok,read} = inert:poll(Socket),
+    inert:poll(Socket),
     case procket:read(Socket, 16#ffff) of
         {ok, <<>>} ->
             error_logger:info_report([{close, Socket}]),
-            ok = procket:close(Socket),
-            ok;
+            procket:close(Socket);
         {ok, Buf} ->
-            {ok,write} = inert:poll(Socket, [{mode, write}]),
-            ok = procket:write(Socket, Buf),
-            echo(Socket)
+            reply(Socket, Buf);
+        {error,eagain} ->
+            echo(Socket);
+        {error,_} = Error ->
+            error_logger:info_report([{read, Error}]),
+            procket:close(Socket)
+    end.
+
+reply(Socket, Buf) ->
+    inert:poll(Socket, [{mode, write}]),
+    case procket:write(Socket, Buf) of
+        ok ->
+            echo(Socket);
+        {error, eagain} ->
+            reply(Socket, Buf);
+        {error,_} = Error ->
+            error_logger:info_report([{write, Error}]),
+            procket:close(Socket)
     end.

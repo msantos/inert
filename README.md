@@ -2,7 +2,7 @@ inert is a library for asynchronous notification of events on file
 descriptors. To be scheduler friendly, inert uses the native Erlang
 socket polling mechanism.
 
-Stable version: 0.6.1
+Stable version: 0.6.2
 
 # QUICK USAGE
 

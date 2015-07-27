@@ -23,19 +23,23 @@
 ssh() ->
     ok = inert:start(),
     {ok, Socket} = procket:socket(inet, stream, 0),
-    Sockaddr = <<(procket:sockaddr_common(?PF_INET, 16))/binary,
-        22:16,          % Port
-        127,0,0,1,      % IPv4 loopback
-        0:64
-    >>,
-    ok = case procket:connect(Socket, Sockaddr) of
-        ok ->
-            ok;
-        {error, einprogress} ->
-            poll(Socket)
-    end,
-    {ok,read} = inert:poll(Socket, [{mode,read}]),
-    procket:read(Socket, 16#ffff).
+    try
+        Sockaddr = <<(procket:sockaddr_common(?PF_INET, 16))/binary,
+            22:16,          % Port
+            127,0,0,1,      % IPv4 loopback
+            0:64
+        >>,
+        ok = case procket:connect(Socket, Sockaddr) of
+            ok ->
+                ok;
+            {error, einprogress} ->
+                poll(Socket)
+        end,
+        {ok,read} = inert:poll(Socket, [{mode,read}]),
+        procket:read(Socket, 16#ffff)
+    after
+        procket:close(Socket)
+    end.
 
 poll(Socket) ->
     {ok,write} = inert:poll(Socket, [{mode,write}]),

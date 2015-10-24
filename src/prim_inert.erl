@@ -18,10 +18,12 @@
 -export([
         fdset/2, fdset/3,
         fdclr/2, fdclr/3,
-        poll/2, poll/3,
+        poll/2, poll/3, poll/4,
 
         controlling_process/2
     ]).
+
+-type mode() :: read | write | read_write.
 
 start() ->
     ok = inert_drv:start(),
@@ -36,10 +38,12 @@ stop(Port) ->
 fdset(Port, FD) ->
     fdset(Port, FD, []).
 
--spec fdset(inert_drv:ref(), integer(), proplists:proplist()) ->
+-spec fdset(inert_drv:ref(), integer(), mode() | proplists:proplist()) ->
     'ok' | inert_drv:errno().
-fdset(Port, FD, Options) ->
+fdset(Port, FD, Options) when is_list(Options) ->
     Mode = proplists:get_value(mode, Options, read),
+    fdset(Port, FD, Mode);
+fdset(Port, FD, Mode) when is_atom(Mode) ->
     Event = inert_drv:encode({FD, Mode}),
     inert_drv:ctl(Port, fdset, Event).
 
@@ -47,10 +51,12 @@ fdset(Port, FD, Options) ->
 fdclr(Port, FD) ->
     fdclr(Port, FD, []).
 
--spec fdclr(inert_drv:ref(), integer(), proplists:proplist()) ->
+-spec fdclr(inert_drv:ref(), integer(), mode() | proplists:proplist()) ->
     'ok' | inert_drv:errno().
-fdclr(Port, FD, Options) ->
+fdclr(Port, FD, Options) when is_list(Options) ->
     Mode = proplists:get_value(mode, Options, read_write),
+    fdclr(Port, FD, Mode);
+fdclr(Port, FD, Mode) when is_atom(Mode) ->
     Event = inert_drv:encode({FD, Mode}),
     inert_drv:ctl(Port, fdclr, Event).
 
@@ -59,12 +65,29 @@ fdclr(Port, FD, Options) ->
 poll(Port, FD) ->
     poll(Port, FD, []).
 
--spec poll(inert_drv:ref(), integer(), proplists:proplist()) ->
+-spec poll(inert_drv:ref(), integer(), mode() | proplists:proplist()) ->
     {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:errno().
-poll(Port, FD, Options) ->
-    case fdset(Port, FD, Options) of
+poll(Port, FD, Options) when is_list(Options) ->
+    Mode = proplists:get_value(mode, Options, read),
+    Timeout = proplists:get_value(timeout, Options, infinity),
+    poll(Port, FD, Mode, Timeout);
+poll(Port, FD, Mode) when is_atom(Mode) ->
+    poll(Port, FD, Mode, infinity).
+
+-spec poll(inert_drv:ref(), integer(), mode(), timeout()) ->
+    {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:errno().
+poll(Port, FD, Mode, Timeout) ->
+    case wait(Port, FD, Mode, 0) of
+        {error,timeout} ->
+            polldrv(Port, FD, Mode, Timeout);
+        Reply ->
+            Reply
+    end.
+
+polldrv(Port, FD, Mode, Timeout) ->
+    case fdset(Port, FD, Mode) of
         ok ->
-            wait(Port, FD, Options);
+            wait(Port, FD, Mode, Timeout);
         Error ->
             Error
     end.
@@ -97,31 +120,21 @@ controlling_process(Port, Pid) when is_port(Port), is_pid(Pid) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
--spec wait(inert_drv:ref(),integer(),proplists:proplist()) ->
+-spec wait(inert_drv:ref(),integer(), read | write | read_write, timeout()) ->
     'ok' | {'error','timeout'}.
-wait(Port, FD, Options) when is_atom(Port) ->
-    wait(whereis(Port), FD, Options);
-wait(Port, FD, Options) when is_port(Port) ->
-    Mode = proplists:get_value(mode, Options, read),
-    Timeout = proplists:get_value(timeout, Options, infinity),
-    wait_1(Port, FD, Mode, Timeout).
-
-wait_1(Port, FD, read_write, Timeout) ->
+wait(Port, FD, Mode, Timeout) when is_atom(Port) ->
+    wait(whereis(Port), FD, Mode, Timeout);
+wait(Port, FD, read_write, Timeout) ->
     receive
         {inert_read, Port, FD} ->
-            fdclr(Port, FD, [{mode, write}]),
-            flush(Port, FD, write),
             {ok,read};
         {inert_write, Port, FD} ->
-            fdclr(Port, FD, [{mode, read}]),
-            flush(Port, FD, read),
             {ok,write}
     after
         Timeout ->
-            fdclr(Port, FD, [{mode, read_write}]),
-            flush(Port, FD, read_write)
+            {error,timeout}
     end;
-wait_1(Port, FD, Mode, Timeout) ->
+wait(Port, FD, Mode, Timeout) ->
     Tag = case Mode of
         read -> inert_read;
         write -> inert_write
@@ -131,35 +144,5 @@ wait_1(Port, FD, Mode, Timeout) ->
             {ok, Mode}
     after
         Timeout ->
-            fdclr(Port, FD, [{mode, Mode}]),
-            flush(Port, FD, Mode)
-    end.
-
-flush(Port, FD, read_write) ->
-    receive
-        {inert_read, Port, FD} ->
-            flush(Port, FD, write),
-            {ok,read};
-        {inert_write, Port, FD} ->
-            flush(Port, FD, read),
-            {ok,write}
-    after
-        0 ->
-            {error,timeout}
-    end;
-flush(Port, FD, read) ->
-    receive
-        {inert_read, Port, FD} ->
-            {ok,read}
-    after
-        0 ->
-            {error,timeout}
-    end;
-flush(Port, FD, write) ->
-    receive
-        {inert_write, Port, FD} ->
-            {ok,write}
-    after
-        0 ->
             {error,timeout}
     end.

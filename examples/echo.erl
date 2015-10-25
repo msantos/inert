@@ -80,7 +80,7 @@ echo(Socket) ->
     end.
 
 reply(Socket, Buf) ->
-    inert:poll(Socket, [{mode, write}]),
+    inert:poll(Socket, write),
     case procket:write(Socket, Buf) of
         ok ->
             echo(Socket);

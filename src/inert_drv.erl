@@ -23,9 +23,10 @@
 
 -type ref() :: port() | atom().
 -type command() :: 'fdset' | 'fdclr'.
+-type mode() :: read | write | read_write.
 -type errno() :: {'error','ebadf' | 'einval' | 'closed'}.
 
--export_type([ref/0,command/0,errno/0]).
+-export_type([ref/0,command/0,mode/0,errno/0]).
 
 -define(INERT_FDSET, 1).
 -define(INERT_FDCLR, 2).

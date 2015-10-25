@@ -18,7 +18,7 @@
 -export([
         fdset/1, fdset/2,
         fdclr/1, fdclr/2,
-        poll/1, poll/2,
+        poll/1, poll/2, poll/3,
         pollid/0
     ]).
 
@@ -40,26 +40,35 @@ pollid() ->
 
 -spec fdset(integer()) -> 'ok' | inert_drv:errno().
 fdset(FD) ->
-    fdset(FD, []).
+    prim_inert:fdset(inert, FD, read).
 
--spec fdset(integer(), proplists:proplist()) -> 'ok' | inert_drv:errno().
+-spec fdset(integer(), inert_drv:mode() | proplists:proplist())
+    -> 'ok' | inert_drv:errno().
 fdset(FD, Options) ->
     prim_inert:fdset(inert, FD, Options).
 
 -spec fdclr(integer()) -> 'ok' | inert_drv:errno().
 fdclr(FD) ->
-    fdclr(FD, []).
+    prim_inert:fdclr(inert, FD, read_write).
 
--spec fdclr(integer(), proplists:proplist()) -> 'ok' | inert_drv:errno().
+-spec fdclr(integer(), inert_drv:mode() | proplists:proplist())
+    -> 'ok' | inert_drv:errno().
 fdclr(FD, Options) ->
     prim_inert:fdclr(inert, FD, Options).
 
--spec poll(integer()) ->
-    {'ok','read'} | {'error','timeout'} | inert_drv:errno().
+-spec poll(integer())
+    -> {'ok','read'} | {'error','timeout'} | inert_drv:errno().
 poll(FD) ->
-    poll(FD, []).
+    prim_inert:poll(inert, FD, read, infinity).
 
--spec poll(integer(), proplists:proplist()) ->
-    {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:errno().
-poll(FD, Options) ->
+-spec poll(integer(), inert_drv:mode() | proplists:proplist())
+    -> {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:errno().
+poll(FD, Mode) when is_atom(Mode) ->
+    prim_inert:poll(inert, FD, Mode, infinity);
+poll(FD, Options) when is_list(Options) ->
     prim_inert:poll(inert, FD, Options).
+
+-spec poll(integer(), inert_drv:mode() | proplists:proplist(), timeout())
+    -> {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:errno().
+poll(FD, Mode, Timeout) ->
+    prim_inert:poll(inert, FD, Mode, Timeout).

@@ -23,8 +23,6 @@
         controlling_process/2
     ]).
 
--type mode() :: read | write | read_write.
-
 start() ->
     ok = inert_drv:start(),
     open_port({spawn_driver, "inert_drv"}, [stream]).
@@ -38,7 +36,7 @@ stop(Port) ->
 fdset(Port, FD) ->
     fdset(Port, FD, []).
 
--spec fdset(inert_drv:ref(), integer(), mode() | proplists:proplist()) ->
+-spec fdset(inert_drv:ref(), integer(), inert_drv:mode() | proplists:proplist()) ->
     'ok' | inert_drv:errno().
 fdset(Port, FD, Options) when is_list(Options) ->
     Mode = proplists:get_value(mode, Options, read),
@@ -51,7 +49,7 @@ fdset(Port, FD, Mode) when is_atom(Mode) ->
 fdclr(Port, FD) ->
     fdclr(Port, FD, []).
 
--spec fdclr(inert_drv:ref(), integer(), mode() | proplists:proplist()) ->
+-spec fdclr(inert_drv:ref(), integer(), inert_drv:mode() | proplists:proplist()) ->
     'ok' | inert_drv:errno().
 fdclr(Port, FD, Options) when is_list(Options) ->
     Mode = proplists:get_value(mode, Options, read_write),
@@ -65,7 +63,7 @@ fdclr(Port, FD, Mode) when is_atom(Mode) ->
 poll(Port, FD) ->
     poll(Port, FD, []).
 
--spec poll(inert_drv:ref(), integer(), mode() | proplists:proplist()) ->
+-spec poll(inert_drv:ref(), integer(), inert_drv:mode() | proplists:proplist()) ->
     {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:errno().
 poll(Port, FD, Options) when is_list(Options) ->
     Mode = proplists:get_value(mode, Options, read),
@@ -74,7 +72,7 @@ poll(Port, FD, Options) when is_list(Options) ->
 poll(Port, FD, Mode) when is_atom(Mode) ->
     poll(Port, FD, Mode, infinity).
 
--spec poll(inert_drv:ref(), integer(), mode(), timeout()) ->
+-spec poll(inert_drv:ref(), integer(), inert_drv:mode(), timeout()) ->
     {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:errno().
 poll(Port, FD, Mode, Timeout) ->
     case wait(Port, FD, Mode, 0) of

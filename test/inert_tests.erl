@@ -145,7 +145,7 @@ connect(Port, N) ->
 inert_poll_read_write() ->
     {ok, Socket} = gen_udp:open(0, [{active,false}]),
     {ok, FD} = inet:getfd(Socket),
-    {ok,_} = inert:poll(FD, [{mode,read_write}]),
+    {ok,_} = inert:poll(FD, read_write),
     PollId = inert:pollid(),
     Reply = receive
         {Tag, PollId, FD} when Tag == inert_read; Tag == inert_write ->
@@ -160,14 +160,14 @@ inert_poll_read_write() ->
 inert_poll_timeout() ->
     {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),
     {ok, FD} = inet:getfd(Socket),
-    ?_assertEqual({error, timeout}, inert:poll(FD, [{timeout, 10}])).
+    ?_assertEqual({error, timeout}, inert:poll(FD, read, 10)).
 
 inert_poll_race_timeout() ->
     {ok, Socket} = gen_udp:open(0, []),
     {ok, FD} = inet:getfd(Socket),
 
     Result = [ begin
-                inert:poll(FD, [{mode, read_write},{timeout,0}]),
+                inert:poll(FD, read_write, 0),
                 receive
                     X -> X
                 after
@@ -182,8 +182,8 @@ inert_stateless_fdset() ->
     {ok, Port} = inet:port(Socket),
     {ok, FD} = inet:getfd(Socket),
 
-    ok = inert:fdset(FD, [{mode, read_write}]),
-    ok = inert:fdset(FD, [{mode, write}]),
+    ok = inert:fdset(FD, read_write),
+    ok = inert:fdset(FD, write),
 
     {ok, Conn} = gen_tcp:connect("localhost", Port, [binary]),
     ok = gen_tcp:close(Conn),
@@ -196,7 +196,7 @@ inert_stateless_fdset() ->
             ok
     end,
 
-    ok = inert:fdset(FD, [{mode, read}]),
+    ok = inert:fdset(FD, read),
 
     Result = receive
         {inert_read, _, FD} = N ->
@@ -213,7 +213,7 @@ inert_controlling_process() ->
     inert_controlling_process(PollId, Pid, FD, 0),
     Result = receive
         inert_controlling_process ->
-            N = prim_inert:poll(PollId, FD, [{mode, write}]),
+            N = prim_inert:poll(PollId, FD, write),
             gen_udp:close(Socket),
             N
     end,
@@ -223,7 +223,7 @@ inert_controlling_process(PollId, Parent, _FD, 3) ->
     ok = prim_inert:controlling_process(PollId, Parent),
     Parent ! inert_controlling_process;
 inert_controlling_process(PollId, Parent, FD, N) ->
-    {ok,write} = prim_inert:poll(PollId, FD, [{mode, write}]),
+    {ok,write} = prim_inert:poll(PollId, FD, write),
     Pid1 = spawn(fun() -> inert_controlling_process(PollId, Parent, FD, N+1) end),
     ok = prim_inert:controlling_process(PollId, Pid1).
 

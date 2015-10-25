@@ -47,12 +47,12 @@ error reports.
         Stop the inert service.
 
     poll(FD) -> {ok,read} | {error, Error}
-    poll(FD, Options) -> {ok, Mode} | {error, Error}
+    poll(FD, Mode) -> {ok, Mode} | {error, Error}
+    poll(FD, Mode, Timeout) -> {ok, Mode} | {error, Error}
 
         Types   FD = integer()
-                Options = [ {timeout, Timeout} | {mode, Mode} ]
-                Timeout = infinity | uint()
                 Mode = read | write | read_write
+                Timeout = timeout()
                 Error = closed | timeout | ebadf | einval
 
         poll/2,3 blocks until a file descriptor is ready for reading
@@ -70,10 +70,9 @@ error reports.
         Retrieves the port identifier for the inert driver.
 
     fdset(FD) -> ok | {error, Error}
-    fdset(FD, Options) -> ok | {error, Error}
+    fdset(FD, Mode) -> ok | {error, Error}
 
         Types   FD = integer()
-                Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
                 Error = closed | ebadf | einval
 
@@ -100,14 +99,13 @@ error reports.
             % monitoring the fd for write events only
 
     fdclr(FD) -> ok | {error, Error}
-    fdclr(FD, Options) -> ok | {error, Error}
+    fdclr(FD, Mode) -> ok | {error, Error}
 
         Types   FD = integer()
-                Options = [ {mode, Mode} ]
                 Mode = read | write | read_write
                 Error = closed | ebadf | einval
 
-        Clear an event set for a file descriptor.
+        Clear an event set for a file descriptor (default: read_write).
 
 ## prim\_inert
 
@@ -178,11 +176,11 @@ ssh() ->
         {error, einprogress} ->
             poll(Socket)
     end,
-    {ok,read} = inert:poll(Socket, [{mode,read}]),
+    {ok,read} = inert:poll(Socket, read),
     procket:read(Socket, 16#ffff).
 
 poll(Socket) ->
-    {ok,write} = inert:poll(Socket, [{mode,write}]),
+    {ok,write} = inert:poll(Socket, write),
     case procket:getsockopt(Socket, ?SOL_SOCKET, ?SO_ERROR, <<>>) of
         {ok, _Buf} ->
             ok;
@@ -346,5 +344,3 @@ The interaction between `mode` and `on`:
 # TODO
 
 * pass in sets of file descriptors
-
-        inert:fdset([7, {8, write}, 11], [{mode, read}])

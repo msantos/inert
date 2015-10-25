@@ -35,14 +35,14 @@ ssh() ->
             {error, einprogress} ->
                 poll(Socket)
         end,
-        {ok,read} = inert:poll(Socket, [{mode,read}]),
+        {ok,read} = inert:poll(Socket, read),
         procket:read(Socket, 16#ffff)
     after
         procket:close(Socket)
     end.
 
 poll(Socket) ->
-    {ok,write} = inert:poll(Socket, [{mode,write}]),
+    {ok,write} = inert:poll(Socket, write),
     case procket:getsockopt(Socket, ?SOL_SOCKET, ?SO_ERROR, <<>>) of
         {ok, _Buf} ->
             ok;

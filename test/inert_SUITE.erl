@@ -1,4 +1,4 @@
-%%% Copyright (c) 2013-2015, Michael Santos <michael.santos@gmail.com>
+%%% Copyright (c) 2013-2016, Michael Santos <michael.santos@gmail.com>
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -11,49 +11,65 @@
 %%% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 %%% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 %%% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
--module(inert_tests).
+-module(inert_SUITE).
 
--compile(export_all).
+-include_lib("common_test/include/ct.hrl").
 
--include_lib("eunit/include/eunit.hrl").
+-export([
+        all/0,
+        init_per_suite/1,
+        end_per_suite/1
+    ]).
 
-inert_test_() ->
-    {setup,
-        fun start/0,
-        fun stop/1,
-        fun run/1
-    }.
+-export([
+        inert_badfd/1,
+        inert_select/1,
+        inert_stream/1,
+        inert_poll_read_write/1,
+        inert_poll_timeout/1,
+        inert_poll_race_timeout/1,
+        inert_stateless_fdset/1,
+        inert_controlling_process/1,
+        inert_error_closed/1,
+        inert_fdownership/1
+    ]).
 
-run(_) ->
+all() ->
     [
-        inert_badfd(),
-        inert_select(),
-        inert_stream(),
-        inert_poll_read_write(),
-        inert_poll_timeout(),
-        inert_poll_race_timeout(),
-        inert_stateless_fdset(),
-        inert_controlling_process(),
-        inert_error_closed(),
-        inert_fdownership()
+        inert_badfd,
+        inert_select,
+        inert_stream,
+        inert_poll_read_write,
+        inert_poll_timeout,
+        inert_poll_race_timeout,
+        inert_stateless_fdset,
+        inert_controlling_process,
+        inert_error_closed,
+        inert_fdownership
     ].
 
-start() ->
-    inert:start().
+init_per_suite(Config) ->
+    inert:start(),
+    Config.
 
-stop(_) ->
-    inert:stop().
+end_per_suite(Config) ->
+    inert:stop(),
+    Config.
 
-inert_badfd() ->
-    [
-        ?_assertEqual({error, ebadf}, inert:fdset(-1)),
-        ?_assertEqual({error, ebadf}, inert:poll(-1)),
-        ?_assertEqual({error, ebadf}, inert:fdset(127)),
-        ?_assertEqual({error, ebadf}, inert:fdset(128)),
-        ?_assertEqual({error, ebadf}, inert:fdset(10000))
-    ].
+%%
+%% inert_badfd
+%%
+inert_badfd(_Config) ->
+    {error, ebadf} = inert:fdset(-1),
+    {error, ebadf} = inert:poll(-1),
+    {error, ebadf} = inert:fdset(127),
+    {error, ebadf} = inert:fdset(128),
+    {error, ebadf} = inert:fdset(10000).
 
-inert_select() ->
+%%
+%% inert_select
+%%
+inert_select(_Config) ->
     {ok, Sock1} = gen_tcp:listen(0, [binary,{active,false}]),
     {ok, Sock2} = gen_tcp:listen(0, [binary,{active,false}]),
 
@@ -72,20 +88,20 @@ inert_select() ->
     gen_tcp:close(C1),
     gen_tcp:close(C2),
 
-    Result = receive
+    ok = receive
         {inert_read, _, FD1} ->
-%            error_logger:info_report([{fd, FD1}]),
             inert:fdclr(FD1),
             receive
                 {inert_read, _, FD2} ->
-%                    error_logger:info_report([{fd, FD2}]),
                     inert:fdclr(FD2)
             end
-    end,
-    ?_assertEqual(ok, Result).
+    end.
 
-inert_stream() ->
-    N = getenv("INERT_TEST_STREAM_RUNS", 10),
+%%
+%% inert_stream
+%%
+inert_stream(_Config) ->
+    N = os:getenv("INERT_TEST_STREAM_RUNS", 10),
 
     {ok, Socket} = gen_tcp:listen(0, [binary,{active,false}]),
     {ok, Port} = inet:port(Socket),
@@ -105,7 +121,7 @@ accept(S, X, N) ->
     accept(S, X, N-1).
 
 wait(S, 0) ->
-    ?_assertEqual(ok, gen_tcp:close(S));
+    ok = gen_tcp:close(S);
 wait(S, N) ->
     receive
         {fd_close, _FD} ->
@@ -119,11 +135,7 @@ read(Pid, FD, N) ->
     case procket:read(FD, 1) of
         {ok, <<>>} ->
             procket:close(FD),
-%            error_logger:info_report([
-%                    {fd, FD},
-%                    {read_bytes, N}
-%                ]),
-            N = getenv("INERT_TEST_STREAM_NUM_BYTES", 1024),
+            N = os:getenv("INERT_TEST_STREAM_NUM_BYTES", 1024),
             Pid ! {fd_close, FD};
         {ok, Buf} ->
             read(Pid, FD, N + byte_size(Buf));
@@ -136,33 +148,40 @@ read(Pid, FD, N) ->
 
 connect(Port, N) ->
     {ok, C} = gen_tcp:connect("localhost", Port, []),
-    Num = getenv("INERT_TEST_STREAM_NUM_BYTES", 1024),
+    Num = os:getenv("INERT_TEST_STREAM_NUM_BYTES", 1024),
     Bin = crypto:rand_bytes(Num),
     ok = gen_tcp:send(C, Bin),
     ok = gen_tcp:close(C),
     connect(Port, N-1).
 
-inert_poll_read_write() ->
+%%
+%% inert_poll_read_write
+%%
+inert_poll_read_write(_Config) ->
     {ok, Socket} = gen_udp:open(0, [{active,false}]),
     {ok, FD} = inet:getfd(Socket),
     {ok,_} = inert:poll(FD, read_write),
     PollId = inert:pollid(),
-    Reply = receive
+    ok = receive
         {Tag, PollId, FD} when Tag == inert_read; Tag == inert_write ->
             {error, Tag}
     after
         10 ->
-            ok
-    end,
-    gen_udp:close(Socket),
-    ?_assertEqual(ok, Reply).
+            gen_udp:close(Socket)
+    end.
 
-inert_poll_timeout() ->
+%%
+%% inert_poll_timeout
+%%
+inert_poll_timeout(_Config) ->
     {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),
     {ok, FD} = inet:getfd(Socket),
-    ?_assertEqual({error, timeout}, inert:poll(FD, read, 10)).
+    {error, timeout} = inert:poll(FD, read, 10).
 
-inert_poll_race_timeout() ->
+%%
+%% inert_poll_race_timeout
+%%
+inert_poll_race_timeout(_Config) ->
     {ok, Socket} = gen_udp:open(0, []),
     {ok, FD} = inet:getfd(Socket),
 
@@ -174,10 +193,14 @@ inert_poll_race_timeout() ->
                     0 -> ok
                 end
         end || _ <- lists:seq(1,1000) ],
-    ?_assertEqual([], [ N || N <- Result, N /= ok ]).
+    [] = [ N || N <- Result, N /= ok ].
 
-% Test successive calls to fdset overwrite the previous mode
-inert_stateless_fdset() ->
+%%
+%% inert_poll_race_timeout
+%%
+%% Test successive calls to fdset overwrite the previous mode
+%%
+inert_stateless_fdset(_Config) ->
     {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),
     {ok, Port} = inet:port(Socket),
     {ok, FD} = inet:getfd(Socket),
@@ -202,10 +225,14 @@ inert_stateless_fdset() ->
         {inert_read, _, FD} = N ->
             N
     end,
-    ?_assertMatch({inert_read, _, FD}, Result).
+    {inert_read, _, FD} = Result.
 
-% Pass port ownership through a ring of processes
-inert_controlling_process() ->
+%%
+%% inert_controlling_process
+%%
+%% Pass port ownership through a ring of processes
+%%
+inert_controlling_process(_Config) ->
     PollId = prim_inert:start(),
     {ok, Socket} = gen_udp:open(0, [binary, {active,false}]),
     {ok, FD} = inet:getfd(Socket),
@@ -217,7 +244,7 @@ inert_controlling_process() ->
             gen_udp:close(Socket),
             N
     end,
-    ?_assertEqual({ok,write}, Result).
+    {ok,write} = Result.
 
 inert_controlling_process(PollId, Parent, _FD, 3) ->
     ok = prim_inert:controlling_process(PollId, Parent),
@@ -227,13 +254,19 @@ inert_controlling_process(PollId, Parent, FD, N) ->
     Pid1 = spawn(fun() -> inert_controlling_process(PollId, Parent, FD, N+1) end),
     ok = prim_inert:controlling_process(PollId, Pid1).
 
-% Catch the badarg if the port has been closed
-inert_error_closed() ->
+%%
+%% inert_error_closed
+%%
+%% Catch the badarg if the port has been closed
+inert_error_closed(_Config) ->
     PollId = prim_inert:start(),
     ok = prim_inert:stop(PollId),
-    ?_assertEqual({error, closed}, prim_inert:poll(PollId, 1)).
+    {error, closed} = prim_inert:poll(PollId, 1).
 
-inert_fdownership() ->
+%%
+%% inert_fdownership
+%%
+inert_fdownership(_Config) ->
     {ok, Socket} = gen_udp:open(0, [binary, {active,false}]),
     {ok, FD} = inet:getfd(Socket),
     ok = inert:fdset(FD),
@@ -271,15 +304,7 @@ inert_fdownership() ->
         1000 -> {error,timeout}
     end,
 
-    [
-        ?_assertEqual({error,ebusy}, Reply1),
-        ?_assertEqual(ok, Reply2),
-        ?_assertEqual(ok, Reply3),
-        ?_assertEqual(ok, Reply4)
-    ].
-
-getenv(Var, Default) when is_list(Var), is_integer(Default) ->
-    case os:getenv(Var) of
-        false -> Default;
-        N -> list_to_integer(N)
-    end.
+    {error,ebusy} = Reply1,
+    ok = Reply2,
+    ok = Reply3,
+    ok = Reply4.

@@ -50,7 +50,11 @@ all() ->
 
 init_per_suite(Config) ->
     inert:start(),
-    Config.
+    [{inert_test_stream_runs,
+            list_to_integer(os:getenv("INERT_TEST_STREAM_RUNS", "10"))},
+        {inert_test_stream_num_bytes,
+            list_to_integer(os:getenv("INERT_TEST_STREAM_NUM_BYTES", "1024"))}
+        | Config].
 
 end_per_suite(Config) ->
     inert:stop(),
@@ -100,59 +104,58 @@ inert_select(_Config) ->
 %%
 %% inert_stream
 %%
-inert_stream(_Config) ->
-    N = os:getenv("INERT_TEST_STREAM_RUNS", 10),
+inert_stream(Config) ->
+    Runs = ?config(inert_test_stream_runs, Config),
+    Bytes = ?config(inert_test_stream_num_bytes, Config),
 
     {ok, Socket} = gen_tcp:listen(0, [binary,{active,false}]),
     {ok, Port} = inet:port(Socket),
-    spawn(fun() -> connect(Port, N) end),
-    accept(Socket, N).
+    spawn_link(fun() -> connect(Port, Runs, Bytes) end),
+    accept(Socket, Runs, Bytes).
 
-accept(S,N) ->
-    accept(S,N,N).
+accept(Socket, Runs, Bytes) ->
+    accept(Socket, Runs, Runs, Bytes).
 
-accept(S, X, 0) ->
-    wait(S, X);
-accept(S, X, N) ->
-    {ok, S1} = gen_tcp:accept(S),
+accept(Socket, Runs, 0, _) ->
+    wait(Socket, Runs);
+accept(Socket, Runs, Count, Bytes) ->
+    {ok, S1} = gen_tcp:accept(Socket),
     {ok, FD} = inet:getfd(S1),
     Self = self(),
-    spawn(fun() -> read(Self, FD) end),
-    accept(S, X, N-1).
+    spawn_link(fun() -> read(Self, FD, Bytes) end),
+    accept(Socket, Runs, Count-1, Bytes).
 
-wait(S, 0) ->
-    ok = gen_tcp:close(S);
-wait(S, N) ->
+wait(Socket, 0) ->
+    ok = gen_tcp:close(Socket);
+wait(Socket, Runs) ->
     receive
         {fd_close, _FD} ->
-            wait(S, N-1)
+            wait(Socket, Runs-1)
     end.
 
-read(Pid, FD) ->
-    read(Pid, FD, 0).
-read(Pid, FD, N) ->
+read(Pid, FD, Bytes) ->
+    read(Pid, FD, Bytes, 0).
+read(Pid, FD, Bytes, N) ->
     {ok,read} = inert:poll(FD),
     case procket:read(FD, 1) of
-        {ok, <<>>} ->
+        {ok, <<>>} when Bytes =:= N ->
             procket:close(FD),
-            N = os:getenv("INERT_TEST_STREAM_NUM_BYTES", 1024),
             Pid ! {fd_close, FD};
         {ok, Buf} ->
-            read(Pid, FD, N + byte_size(Buf));
+            read(Pid, FD, Bytes, N + byte_size(Buf));
         {error, eagain} ->
             error_logger:info_report([{fd, FD}, {error, eagain}]),
-            read(Pid, FD, N);
+            read(Pid, FD, Bytes, N);
         {error, Error} ->
             error_logger:error_report([{fd, FD}, {error, Error}])
     end.
 
-connect(Port, N) ->
-    {ok, C} = gen_tcp:connect("localhost", Port, []),
-    Num = os:getenv("INERT_TEST_STREAM_NUM_BYTES", 1024),
-    Bin = crypto:rand_bytes(Num),
-    ok = gen_tcp:send(C, Bin),
-    ok = gen_tcp:close(C),
-    connect(Port, N-1).
+connect(Port, Runs, Bytes) ->
+    {ok, Socket} = gen_tcp:connect("localhost", Port, []),
+    Bin = crypto:rand_bytes(Bytes),
+    ok = gen_tcp:send(Socket, Bin),
+    ok = gen_tcp:close(Socket),
+    connect(Port, Runs-1, Bytes).
 
 %%
 %% inert_poll_read_write

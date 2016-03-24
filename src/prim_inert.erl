@@ -1,4 +1,4 @@
-%%% Copyright (c) 2015, Michael Santos <michael.santos@gmail.com>
+%%% Copyright (c) 2015-2016, Michael Santos <michael.santos@gmail.com>
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -29,7 +29,7 @@ start() ->
 
 -spec stop(inert_drv:ref()) -> 'ok'.
 stop(Port) ->
-    true = erlang:port_close(Port),
+    catch erlang:port_close(Port),
     inert_drv:stop().
 
 -spec fdset(inert_drv:ref(), integer()) -> 'ok' | inert_drv:errno().

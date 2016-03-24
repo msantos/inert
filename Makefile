@@ -19,7 +19,7 @@ deps: $(REBAR)
 	@$(REBAR) get-deps
 
 test: compile
-	@$(REBAR) xref eunit recursive=false
+	@$(REBAR) ct
 
 examples: eg
 eg:

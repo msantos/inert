@@ -8,6 +8,10 @@ socket polling mechanism.
     ok = inert:start(),
     {ok,read} = inert:poll(STDOUT).
 
+# BUILD
+
+    $ rebar3 compile
+
 # OVERVIEW
 
 inert sends your process a message whenever an event occurs on a
@@ -134,7 +138,7 @@ http://www.erlang.org/doc/man/erl_driver.html#driver_select
 
 Run:
 
-    make eg
+    erlc -I deps -o ebin examples/*.erl
 
 ## echo server
 

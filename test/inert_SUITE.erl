@@ -152,7 +152,7 @@ read(Pid, FD, Bytes, N) ->
 
 connect(Port, Runs, Bytes) ->
     {ok, Socket} = gen_tcp:connect("localhost", Port, []),
-    Bin = crypto:rand_bytes(Bytes),
+    Bin = crypto:strong_rand_bytes(Bytes),
     ok = gen_tcp:send(Socket, Bin),
     ok = gen_tcp:close(Socket),
     connect(Port, Runs-1, Bytes).

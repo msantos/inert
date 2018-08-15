@@ -14,3 +14,12 @@ deps/
 Session.vim
 .netrwhist
 *~
+.rebar3
+*.plt
+.erlang.cookie
+erl_crash.dump
+_rel
+_deps
+_plugins
+_tdeps
+_build

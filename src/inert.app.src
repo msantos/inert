@@ -1,11 +1,14 @@
 {application, inert,
     [
     {description, "Asynchronous notification of events on file descriptors"},
-    {vsn, "0.8.0"},
+    {vsn, "1.0.0"},
     {registered, []},
     {applications, [
         kernel,
         stdlib
             ]},
-    {env, []}
-    ]}.
+    {env, []},
+    {modules,[]},
+    {licenses,["ISC"]},
+    {maintainers,["Michael Santos"]},
+    {links,[{"Github","https://github.com/msantos/inert"}]}]}.

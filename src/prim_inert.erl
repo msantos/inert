@@ -119,7 +119,7 @@ controlling_process(Port, Pid) when is_port(Port), is_pid(Pid) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 -spec wait(inert_drv:ref(),integer(), read | write | read_write, timeout()) ->
-    'ok' | {'error','timeout'}.
+    {'ok', 'read' | 'write'} | {'error','timeout'}.
 wait(Port, FD, Mode, Timeout) when is_atom(Port) ->
     wait(whereis(Port), FD, Mode, Timeout);
 wait(Port, FD, read_write, Timeout) ->

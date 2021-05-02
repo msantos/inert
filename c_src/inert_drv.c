@@ -17,6 +17,7 @@
 
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/types.h>
 
 #include <string.h>
 
@@ -24,7 +25,6 @@
 #include <fcntl.h>
 
 #include "erl_driver.h"
-#include "ei.h"
 
 #define get_int32(s) ((((unsigned char*) (s))[0] << 24) | \
                       (((unsigned char*) (s))[1] << 16) | \
@@ -45,7 +45,7 @@ typedef struct {
 
 typedef struct {
     ErlDrvPort port;
-    uint32_t maxfd;
+    rlim_t maxfd;
     inert_state_t *state;
 } inert_drv_t;
 

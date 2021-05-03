@@ -1,4 +1,4 @@
-%%% Copyright (c) 2015-2016, Michael Santos <michael.santos@gmail.com>
+%%% Copyright (c) 2015-2021, Michael Santos <michael.santos@gmail.com>
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -16,12 +16,12 @@
 %% API
 -export([start/0, stop/1]).
 -export([
-        fdset/2, fdset/3,
-        fdclr/2, fdclr/3,
-        poll/2, poll/3, poll/4,
+    fdset/2, fdset/3,
+    fdclr/2, fdclr/3,
+    poll/2, poll/3, poll/4,
 
-        controlling_process/2
-    ]).
+    controlling_process/2
+]).
 
 start() ->
     ok = inert_drv:start(),
@@ -59,12 +59,12 @@ fdclr(Port, FD, Mode) when is_atom(Mode) ->
     inert_drv:ctl(Port, fdclr, Event).
 
 -spec poll(inert_drv:ref(), integer()) ->
-    {'ok','read'} | {'error','timeout'} | inert_drv:errno().
+    {'ok', 'read'} | {'error', 'timeout'} | inert_drv:errno().
 poll(Port, FD) ->
     poll(Port, FD, []).
 
 -spec poll(inert_drv:ref(), integer(), inert_drv:mode() | proplists:proplist()) ->
-    {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:errno().
+    {'ok', 'read' | 'write'} | {'error', 'timeout'} | inert_drv:errno().
 poll(Port, FD, Options) when is_list(Options) ->
     Mode = proplists:get_value(mode, Options, read),
     Timeout = proplists:get_value(timeout, Options, infinity),
@@ -73,10 +73,10 @@ poll(Port, FD, Mode) when is_atom(Mode) ->
     poll(Port, FD, Mode, infinity).
 
 -spec poll(inert_drv:ref(), integer(), inert_drv:mode(), timeout()) ->
-    {'ok','read' | 'write'} | {'error','timeout'} | inert_drv:errno().
+    {'ok', 'read' | 'write'} | {'error', 'timeout'} | inert_drv:errno().
 poll(Port, FD, Mode, Timeout) ->
     case wait(Port, FD, Mode, 0) of
-        {error,timeout} ->
+        {error, timeout} ->
             polldrv(Port, FD, Mode, Timeout);
         Reply ->
             Reply
@@ -105,9 +105,8 @@ controlling_process(Port, Pid) when is_port(Port), is_pid(Pid) ->
             receive
                 {'EXIT', Port, _} ->
                     ok
-            after
-                0 ->
-                    ok
+            after 0 ->
+                ok
             end;
         {connected, _} ->
             {error, not_owner};
@@ -118,29 +117,28 @@ controlling_process(Port, Pid) when is_port(Port), is_pid(Pid) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
--spec wait(inert_drv:ref(),integer(), read | write | read_write, timeout()) ->
-    {'ok', 'read' | 'write'} | {'error','timeout'}.
+-spec wait(inert_drv:ref(), integer(), read | write | read_write, timeout()) ->
+    {'ok', 'read' | 'write'} | {'error', 'timeout'}.
 wait(Port, FD, Mode, Timeout) when is_atom(Port) ->
     wait(whereis(Port), FD, Mode, Timeout);
 wait(Port, FD, read_write, Timeout) ->
     receive
         {inert_read, Port, FD} ->
-            {ok,read};
+            {ok, read};
         {inert_write, Port, FD} ->
-            {ok,write}
-    after
-        Timeout ->
-            {error,timeout}
+            {ok, write}
+    after Timeout ->
+        {error, timeout}
     end;
 wait(Port, FD, Mode, Timeout) ->
-    Tag = case Mode of
-        read -> inert_read;
-        write -> inert_write
-    end,
+    Tag =
+        case Mode of
+            read -> inert_read;
+            write -> inert_write
+        end,
     receive
         {Tag, Port, FD} ->
             {ok, Mode}
-    after
-        Timeout ->
-            {error,timeout}
+    after Timeout ->
+        {error, timeout}
     end.

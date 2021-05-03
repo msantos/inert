@@ -1,4 +1,4 @@
-%%% Copyright (c) 2013-2015, Michael Santos <michael.santos@gmail.com>
+%%% Copyright (c) 2013-2021, Michael Santos <michael.santos@gmail.com>
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -13,20 +13,20 @@
 %%% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 -module(inert_drv).
 -export([
-        start/0,
-        stop/0,
+    start/0,
+    stop/0,
 
-        encode/1,
+    encode/1,
 
-        ctl/3
-    ]).
+    ctl/3
+]).
 
 -type ref() :: port() | atom().
 -type command() :: 'fdset' | 'fdclr'.
 -type mode() :: read | write | read_write.
--type errno() :: {'error','ebadf' | 'einval' | 'closed'}.
+-type errno() :: {'error', 'ebadf' | 'einval' | 'closed'}.
 
--export_type([ref/0,command/0,mode/0,errno/0]).
+-export_type([ref/0, command/0, mode/0, errno/0]).
 
 -define(INERT_FDSET, 1).
 -define(INERT_FDCLR, 2).
@@ -35,7 +35,7 @@
 -define(ERL_DRV_WRITE, (1 bsl 1)).
 -define(ERL_DRV_USE, (1 bsl 2)).
 
--define(INT32(N), (N):4/big-signed-integer-unit:8).
+-define(INT32(N), (N):4 / big - signed - integer - unit:8).
 
 start() ->
     case erl_ddll:load(priv_dir(), ?MODULE) of
@@ -48,8 +48,11 @@ stop() ->
     erl_ddll:unload(?MODULE),
     ok.
 
--spec ctl(Port :: ref(), Op :: command() | non_neg_integer(),
-    Data :: iodata()) -> 'ok' | errno().
+-spec ctl(
+    Port :: ref(),
+    Op :: command() | non_neg_integer(),
+    Data :: iodata()
+) -> 'ok' | errno().
 ctl(Port, Op, Data) when is_atom(Op) ->
     ctl(Port, command(Op), Data);
 ctl(Port, Op, Data) ->
@@ -64,12 +67,9 @@ command(fdset) -> ?INERT_FDSET;
 command(fdclr) -> ?INERT_FDCLR.
 
 encode(FD) when is_integer(FD) -> encode({FD, read});
-encode({FD, read}) ->
-    <<?INT32(FD), ?INT32(?ERL_DRV_READ)>>;
-encode({FD, write}) ->
-    <<?INT32(FD), ?INT32(?ERL_DRV_WRITE)>>;
-encode({FD, read_write}) ->
-    <<?INT32(FD), ?INT32((?ERL_DRV_READ bor ?ERL_DRV_WRITE))>>.
+encode({FD, read}) -> <<?INT32(FD), ?INT32(?ERL_DRV_READ)>>;
+encode({FD, write}) -> <<?INT32(FD), ?INT32(?ERL_DRV_WRITE)>>;
+encode({FD, read_write}) -> <<?INT32(FD), ?INT32((?ERL_DRV_READ bor ?ERL_DRV_WRITE))>>.
 
 priv_dir() ->
     case code:priv_dir(?MODULE) of

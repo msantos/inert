@@ -1,4 +1,4 @@
-%%% Copyright (c) 2013-2015, Michael Santos <michael.santos@gmail.com>
+%%% Copyright (c) 2013-2021, Michael Santos <michael.santos@gmail.com>
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -24,25 +24,32 @@ ssh() ->
     ok = inert:start(),
     {ok, Socket} = procket:socket(inet, stream, 0),
     try
-        Sockaddr = <<(procket:sockaddr_common(?PF_INET, 16))/binary,
-            22:16,          % Port
-            127,0,0,1,      % IPv4 loopback
+        Sockaddr = <<
+            (procket:sockaddr_common(?PF_INET, 16))/binary,
+            % Port
+            22:16,
+            % IPv4 loopback
+            127,
+            0,
+            0,
+            1,
             0:64
         >>,
-        ok = case procket:connect(Socket, Sockaddr) of
-            ok ->
-                ok;
-            {error, einprogress} ->
-                poll(Socket)
-        end,
-        {ok,read} = inert:poll(Socket, read),
+        ok =
+            case procket:connect(Socket, Sockaddr) of
+                ok ->
+                    ok;
+                {error, einprogress} ->
+                    poll(Socket)
+            end,
+        {ok, read} = inert:poll(Socket, read),
         procket:read(Socket, 16#ffff)
     after
         procket:close(Socket)
     end.
 
 poll(Socket) ->
-    {ok,write} = inert:poll(Socket, write),
+    {ok, write} = inert:poll(Socket, write),
     case procket:getsockopt(Socket, ?SOL_SOCKET, ?SO_ERROR, <<>>) of
         {ok, _Buf} ->
             ok;

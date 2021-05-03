@@ -1,4 +1,4 @@
-%%% Copyright (c) 2013-2016, Michael Santos <michael.santos@gmail.com>
+%%% Copyright (c) 2013-2021, Michael Santos <michael.santos@gmail.com>
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -16,22 +16,22 @@
 -include_lib("common_test/include/ct.hrl").
 
 -export([
-        all/0,
-        init_per_suite/1,
-        end_per_suite/1
-    ]).
+    all/0,
+    init_per_suite/1,
+    end_per_suite/1
+]).
 
 -export([
-        inert_badfd/1,
-        inert_select/1,
-        inert_stream/1,
-        inert_poll_read_write/1,
-        inert_poll_timeout/1,
-        inert_stateless_fdset/1,
-        inert_controlling_process/1,
-        inert_error_closed/1,
-        inert_fdownership/1
-    ]).
+    inert_badfd/1,
+    inert_select/1,
+    inert_stream/1,
+    inert_poll_read_write/1,
+    inert_poll_timeout/1,
+    inert_stateless_fdset/1,
+    inert_controlling_process/1,
+    inert_error_closed/1,
+    inert_fdownership/1
+]).
 
 all() ->
     [
@@ -48,11 +48,12 @@ all() ->
 
 init_per_suite(Config) ->
     inert:start(),
-    [{inert_test_stream_runs,
-            list_to_integer(os:getenv("INERT_TEST_STREAM_RUNS", "10"))},
+    [
+        {inert_test_stream_runs, list_to_integer(os:getenv("INERT_TEST_STREAM_RUNS", "10"))},
         {inert_test_stream_num_bytes,
             list_to_integer(os:getenv("INERT_TEST_STREAM_NUM_BYTES", "1024"))}
-        | Config].
+        | Config
+    ].
 
 end_per_suite(Config) ->
     inert:stop(),
@@ -72,8 +73,8 @@ inert_badfd(_Config) ->
 %% inert_select
 %%
 inert_select(_Config) ->
-    {ok, Sock1} = gen_tcp:listen(0, [binary,{active,false}]),
-    {ok, Sock2} = gen_tcp:listen(0, [binary,{active,false}]),
+    {ok, Sock1} = gen_tcp:listen(0, [binary, {active, false}]),
+    {ok, Sock2} = gen_tcp:listen(0, [binary, {active, false}]),
 
     {ok, Port1} = inet:port(Sock1),
     {ok, Port2} = inet:port(Sock2),
@@ -90,14 +91,15 @@ inert_select(_Config) ->
     gen_tcp:close(C1),
     gen_tcp:close(C2),
 
-    ok = receive
-        {inert_read, _, FD1} ->
-            inert:fdclr(FD1),
-            receive
-                {inert_read, _, FD2} ->
-                    inert:fdclr(FD2)
-            end
-    end.
+    ok =
+        receive
+            {inert_read, _, FD1} ->
+                inert:fdclr(FD1),
+                receive
+                    {inert_read, _, FD2} ->
+                        inert:fdclr(FD2)
+                end
+        end.
 
 %%
 %% inert_stream
@@ -106,7 +108,7 @@ inert_stream(Config) ->
     Runs = ?config(inert_test_stream_runs, Config),
     Bytes = ?config(inert_test_stream_num_bytes, Config),
 
-    {ok, Socket} = gen_tcp:listen(0, [binary,{active,false}]),
+    {ok, Socket} = gen_tcp:listen(0, [binary, {active, false}]),
     {ok, Port} = inet:port(Socket),
     spawn_link(fun() -> connect(Port, Runs, Bytes) end),
     accept(Socket, Runs, Bytes).
@@ -121,20 +123,20 @@ accept(Socket, Runs, Count, Bytes) ->
     {ok, FD} = inet:getfd(S1),
     Self = self(),
     spawn_link(fun() -> read(Self, FD, Bytes) end),
-    accept(Socket, Runs, Count-1, Bytes).
+    accept(Socket, Runs, Count - 1, Bytes).
 
 wait(Socket, 0) ->
     ok = gen_tcp:close(Socket);
 wait(Socket, Runs) ->
     receive
         {fd_close, _FD} ->
-            wait(Socket, Runs-1)
+            wait(Socket, Runs - 1)
     end.
 
 read(Pid, FD, Bytes) ->
     read(Pid, FD, Bytes, 0).
 read(Pid, FD, Bytes, N) ->
-    {ok,read} = inert:poll(FD),
+    {ok, read} = inert:poll(FD),
     case procket:read(FD, 1) of
         {ok, <<>>} when Bytes =:= N ->
             procket:close(FD),
@@ -153,29 +155,29 @@ connect(Port, Runs, Bytes) ->
     Bin = crypto:strong_rand_bytes(Bytes),
     ok = gen_tcp:send(Socket, Bin),
     ok = gen_tcp:close(Socket),
-    connect(Port, Runs-1, Bytes).
+    connect(Port, Runs - 1, Bytes).
 
 %%
 %% inert_poll_read_write
 %%
 inert_poll_read_write(_Config) ->
-    {ok, Socket} = gen_udp:open(0, [{active,false}]),
+    {ok, Socket} = gen_udp:open(0, [{active, false}]),
     {ok, FD} = inet:getfd(Socket),
-    {ok,_} = inert:poll(FD, read_write),
+    {ok, _} = inert:poll(FD, read_write),
     PollId = inert:pollid(),
-    ok = receive
-        {Tag, PollId, FD} when Tag == inert_read; Tag == inert_write ->
-            {error, Tag}
-    after
-        10 ->
+    ok =
+        receive
+            {Tag, PollId, FD} when Tag == inert_read; Tag == inert_write ->
+                {error, Tag}
+        after 10 ->
             gen_udp:close(Socket)
-    end.
+        end.
 
 %%
 %% inert_poll_timeout
 %%
 inert_poll_timeout(_Config) ->
-    {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),
+    {ok, Socket} = gen_tcp:listen(0, [binary, {active, false}]),
     {ok, FD} = inet:getfd(Socket),
     {error, timeout} = inert:poll(FD, read, 10).
 
@@ -185,7 +187,7 @@ inert_poll_timeout(_Config) ->
 %% Test successive calls to fdset overwrite the previous mode
 %%
 inert_stateless_fdset(_Config) ->
-    {ok, Socket} = gen_tcp:listen(0, [binary, {active,false}]),
+    {ok, Socket} = gen_tcp:listen(0, [binary, {active, false}]),
     {ok, Port} = inet:port(Socket),
     {ok, FD} = inet:getfd(Socket),
 
@@ -195,20 +197,21 @@ inert_stateless_fdset(_Config) ->
     {ok, Conn} = gen_tcp:connect("localhost", Port, [binary]),
     ok = gen_tcp:close(Conn),
 
-    ok = receive
-        {inert_read, _, FD} = Fail ->
-            Fail
-    after
-        0 ->
+    ok =
+        receive
+            {inert_read, _, FD} = Fail ->
+                Fail
+        after 0 ->
             ok
-    end,
+        end,
 
     ok = inert:fdset(FD, read),
 
-    Result = receive
-        {inert_read, _, FD} = N ->
-            N
-    end,
+    Result =
+        receive
+            {inert_read, _, FD} = N ->
+                N
+        end,
     {inert_read, _, FD} = Result.
 
 %%
@@ -218,24 +221,25 @@ inert_stateless_fdset(_Config) ->
 %%
 inert_controlling_process(_Config) ->
     PollId = prim_inert:start(),
-    {ok, Socket} = gen_udp:open(0, [binary, {active,false}]),
+    {ok, Socket} = gen_udp:open(0, [binary, {active, false}]),
     {ok, FD} = inet:getfd(Socket),
     Pid = self(),
     inert_controlling_process(PollId, Pid, FD, 0),
-    Result = receive
-        inert_controlling_process ->
-            N = prim_inert:poll(PollId, FD, write),
-            gen_udp:close(Socket),
-            N
-    end,
-    {ok,write} = Result.
+    Result =
+        receive
+            inert_controlling_process ->
+                N = prim_inert:poll(PollId, FD, write),
+                gen_udp:close(Socket),
+                N
+        end,
+    {ok, write} = Result.
 
 inert_controlling_process(PollId, Parent, _FD, 3) ->
     ok = prim_inert:controlling_process(PollId, Parent),
     Parent ! inert_controlling_process;
 inert_controlling_process(PollId, Parent, FD, N) ->
-    {ok,write} = prim_inert:poll(PollId, FD, write),
-    Pid1 = spawn(fun() -> inert_controlling_process(PollId, Parent, FD, N+1) end),
+    {ok, write} = prim_inert:poll(PollId, FD, write),
+    Pid1 = spawn(fun() -> inert_controlling_process(PollId, Parent, FD, N + 1) end),
     ok = prim_inert:controlling_process(PollId, Pid1).
 
 %%
@@ -251,44 +255,50 @@ inert_error_closed(_Config) ->
 %% inert_fdownership
 %%
 inert_fdownership(_Config) ->
-    {ok, Socket} = gen_udp:open(0, [binary, {active,false}]),
+    {ok, Socket} = gen_udp:open(0, [binary, {active, false}]),
     {ok, FD} = inet:getfd(Socket),
     ok = inert:fdset(FD),
     Self = self(),
 
     % Test the fd is locked
     spawn(fun() -> Self ! {inert_test, inert:fdset(FD)} end),
-    Reply1 = receive
-        {inert_test, Error1} -> Error1
-    after
-        1000 -> {error,timeout}
-    end,
+    Reply1 =
+        receive
+            {inert_test, Error1} -> Error1
+        after 1000 -> {error, timeout}
+        end,
 
     % Spawned process clears our lock
-    spawn(fun() -> inert:fdclr(FD), Self ! {inert_test, inert:fdset(FD)} end),
-    Reply2 = receive
-        {inert_test, Error2} -> Error2
-    after
-        1000 -> {error,timeout}
-    end,
+    spawn(fun() ->
+        inert:fdclr(FD),
+        Self ! {inert_test, inert:fdset(FD)}
+    end),
+    Reply2 =
+        receive
+            {inert_test, Error2} -> Error2
+        after 1000 -> {error, timeout}
+        end,
 
     % Spawned process has exited, fd is unlocked
     Reply3 = inert:fdset(FD),
 
     % Spawn and process and remove the lock
-    spawn(fun() -> Self ! {inert_test, poll}, inert:poll(FD) end),
+    spawn(fun() ->
+        Self ! {inert_test, poll},
+        inert:poll(FD)
+    end),
     receive
-        {inert_test,poll} -> ok
+        {inert_test, poll} -> ok
     end,
     ok = inert:fdclr(FD),
     spawn(fun() -> Self ! {inert_test, inert:fdset(FD)} end),
-    Reply4 = receive
-        {inert_test, Error4} -> Error4
-    after
-        1000 -> {error,timeout}
-    end,
+    Reply4 =
+        receive
+            {inert_test, Error4} -> Error4
+        after 1000 -> {error, timeout}
+        end,
 
-    {error,ebusy} = Reply1,
+    {error, ebusy} = Reply1,
     ok = Reply2,
     ok = Reply3,
     ok = Reply4.

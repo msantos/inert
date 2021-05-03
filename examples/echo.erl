@@ -1,4 +1,4 @@
-%%% Copyright (c) 2013-2015, Michael Santos <michael.santos@gmail.com>
+%%% Copyright (c) 2013-2021, Michael Santos <michael.santos@gmail.com>
 %%%
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
@@ -15,8 +15,8 @@
 -include_lib("procket/include/procket.hrl").
 
 -export([
-        listen/0, listen/1
-    ]).
+    listen/0, listen/1
+]).
 
 listen() ->
     listen(0).
@@ -28,10 +28,15 @@ listen(Port) ->
     try
         Sockaddr = <<
             (procket:sockaddr_common(procket:family(inet), 16))/binary,
-            Port:16,        % Port
-            0,0,0,0,        % IPv4 ANY address
+            % Port
+            Port:16,
+            % IPv4 ANY address
+            0,
+            0,
+            0,
+            0,
             0:64
-            >>,
+        >>,
         BACKLOG = 1024,
         ok = procket:bind(Socket, Sockaddr),
         ok = procket:listen(Socket, BACKLOG),
@@ -52,7 +57,7 @@ accept(Listen) ->
         {ok, Socket} ->
             error_logger:info_report([{accept, Socket}]),
             spawn(fun() -> echo(Socket) end);
-        {error,eagain} ->
+        {error, eagain} ->
             ok;
         Error ->
             procket:close(Listen),
@@ -72,9 +77,9 @@ echo(Socket) ->
             procket:close(Socket);
         {ok, Buf} ->
             reply(Socket, Buf);
-        {error,eagain} ->
+        {error, eagain} ->
             echo(Socket);
-        {error,_} = Error ->
+        {error, _} = Error ->
             error_logger:info_report([{read, Error}]),
             procket:close(Socket)
     end.
@@ -86,7 +91,7 @@ reply(Socket, Buf) ->
             echo(Socket);
         {error, eagain} ->
             reply(Socket, Buf);
-        {error,_} = Error ->
+        {error, _} = Error ->
             error_logger:info_report([{write, Error}]),
             procket:close(Socket)
     end.

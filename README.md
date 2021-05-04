@@ -82,7 +82,7 @@ error reports.
 
         Monitor a file descriptor for events (default mode: read).
 
-        fdset/2,3 will send one message when a file descriptor is ready
+        fdset/1,2 will send one message when a file descriptor is ready
         for reading or writing:
 
             {inert_read, PollId, FD}   % fd is ready for reading

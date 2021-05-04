@@ -1,5 +1,5 @@
-%%% Copyright (c) 2015-2021, Michael Santos <michael.santos@gmail.com>
-%%%
+%%% @copyright 2015-2021, Michael Santos <michael.santos@gmail.com>
+
 %%% Permission to use, copy, modify, and/or distribute this software for any
 %%% purpose with or without fee is hereby granted, provided that the above
 %%% copyright notice and this permission notice appear in all copies.
@@ -90,6 +90,13 @@ polldrv(Port, FD, Mode, Timeout) ->
             Error
     end.
 
+%% @doc Transfer ownership of the inert port driver from the current
+%% process to another process.
+%%
+%% Since any process can use the port, controlling_process/2 just
+%% sets the port owner and links the process to the port. The
+%% original owner will continue to receive messages for any file
+%% descriptors it has added to the pollset.
 -spec controlling_process(inert_drv:ref(), pid()) ->
     'ok' | {'error', 'not_owner' | 'einval'}.
 controlling_process(Port, Pid) when is_atom(Port), is_pid(Pid) ->

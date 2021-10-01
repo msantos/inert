@@ -20,6 +20,7 @@
 #include <sys/types.h>
 
 #include <string.h>
+#include <stdint.h>
 
 #include <unistd.h>
 #include <fcntl.h>

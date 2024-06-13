@@ -1,3 +1,6 @@
+[![Package Version](https://img.shields.io/hexpm/v/inert)](https://hex.pm/packages/inert)
+[![Hex Docs](https://img.shields.io/badge/hex-docs)](https://hexdocs.pm/inert/)
+
 inert is a library for asynchronous notification of events on file
 descriptors. To be scheduler friendly, inert uses the native Erlang
 socket polling mechanism.
@@ -295,7 +298,7 @@ int driver_select(ErlDrvPort port, ErlDrvEvent event, int mode, int on)
 ```
 
 * the `return value` is either 0 or -1. However, it will only return
-  error in the case the driver has not defined the ``ready_input`` callback
+  error in the case the driver has not defined the `ready_input` callback
   (for the `ERL_DRV_READ` mode) or the `ready_output` callback (for the
   `ERL_DRV_WRITE` mode)
 
